@@ -1063,18 +1063,13 @@
                 if (placa.length < 7) { setError('Digite uma placa válida (7 caracteres)'); return; }
                 setError('');
                 setLoading(true);
-                try {
-                    var res = await fetch('https://brasilapi.com.br/api/vehicles/v1/' + placa);
-                    if (!res.ok) throw new Error('Placa não encontrada');
-                    var data = await res.json();
+                // Mock: simula busca de dados pelo tempo de loading
+                setTimeout(() => {
                     sessionStorage.setItem('placa', placa);
-                    sessionStorage.setItem('veiculoData', JSON.stringify(data));
+                    sessionStorage.removeItem('veiculoData');
                     setLoading(false);
                     navigate('/anuncio');
-                } catch(e) {
-                    setError('Placa não encontrada. Verifique e tente novamente.');
-                    setLoading(false);
-                }
+                }, 1200);
             };
 
             return (
