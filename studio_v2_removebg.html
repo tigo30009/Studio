@@ -715,7 +715,7 @@
 
                     const formData = new FormData();
                     formData.append('image', blob, currentPhoto.name || 'photo.jpg');
-                    const res = await fetch('http://localhost:3000/remove-bg', {
+                    const res = await fetch('/remove-bg', {
                         method: 'POST',
                         body: formData
                     });
