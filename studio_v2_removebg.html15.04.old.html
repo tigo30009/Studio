@@ -470,7 +470,7 @@
 
                             <div className="mt-16 flex justify-end">
                                 <button
-                                    onClick={() => { if (photos.length > 0) { sessionStorage.setItem('studioPhotos', JSON.stringify(photos)); navigate('/plate'); } }}
+                                    onClick={() => { if (photos.length > 0) { sessionStorage.setItem('studioPhotos', JSON.stringify(photos)); navigate('/studio'); } }}
                                     disabled={photos.length === 0}
                                     className={["h-11 px-8 rounded-md text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all", photos.length > 0 ? "bg-[#bc0032] hover:bg-[#920025] cursor-pointer" : "bg-slate-300 cursor-not-allowed"].join(' ')}
                                 >
@@ -1063,103 +1063,6 @@
             );
         };
 
-
-        // ── PlateScreen ──────────────────────────────────────────────────────────
-        const PlateScreen = () => {
-            const navigate = useNavigate();
-            const [plate, setPlate] = React.useState('');
-            const [loading, setLoading] = React.useState(false);
-            const [error, setError] = React.useState('');
-
-            const handleContinue = () => {
-                if (plate.trim() === '') {
-                    setError('Por favor, insira a placa do veículo');
-                    return;
-                }
-                sessionStorage.setItem('vehiclePlate', plate);
-                navigate('/studio');
-            };
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
-                    <Sidebar version="collapsed" />
-
-                    <div className="flex-1 flex items-center justify-center p-6">
-                        <div className="w-full max-w-md">
-                            <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6">
-                                <div className="text-center space-y-2">
-                                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <span className="material-symbols-outlined text-primary text-6xl" style={{fontVariationSettings: "'FILL' 1"}}>confirmation_number</span>
-                                    </div>
-                                    <h1 className="text-2xl font-bold text-on-surface">Informar Placa</h1>
-                                    <p className="text-sm text-on-surface/60">Digite a placa do veículo para continuar</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-on-surface uppercase tracking-widest">Placa do Veículo</label>
-                                    <input
-                                        type="text"
-                                        value={plate}
-                                        onChange={(e) => {
-                                            setPlate(e.target.value.toUpperCase());
-                                            setError('');
-                                        }}
-                                        placeholder="Ex: ABC-1234"
-                                        maxLength="8"
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-center font-mono text-lg font-bold tracking-widest"
-                                    />
-                                </div>
-
-                                {error && (
-                                    <div className="flex items-start gap-3 px-4 py-3 bg-error-container text-on-error-container rounded-lg text-sm">
-                                        <span className="material-symbols-outlined text-[18px] mt-0.5">warning</span>
-                                        <p className="text-xs">{error}</p>
-                                    </div>
-                                )}
-
-                                <div className="space-y-3 pt-2">
-                                    <button
-                                        onClick={() => navigate('/')}
-                                        className="w-full h-12 border-2 border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 group"
-                                    >
-                                        <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-                                        <span className="uppercase tracking-widest text-xs">Voltar</span>
-                                    </button>
-                                    <button
-                                        onClick={handleContinue}
-                                        disabled={loading || plate.trim() === ''}
-                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", loading || plate.trim() === '' ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
-                                    >
-                                        {loading ? (
-                                            <React.Fragment>
-                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                                </svg>
-                                                <span className="uppercase tracking-widest text-sm">Validando...</span>
-                                            </React.Fragment>
-                                        ) : (
-                                            <React.Fragment>
-                                                <span className="material-symbols-outlined">arrow_forward</span>
-                                                <span className="uppercase tracking-widest text-sm">Continuar para Estúdio</span>
-                                            </React.Fragment>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <footer className="w-full mt-auto py-8 bg-white border-t border-slate-200">
-                        <div className="max-w-[1440px] mx-auto px-8 flex justify-between items-center">
-                            <div className="text-xs text-slate-500 font-medium">© 1995-2024 Webmotors S.A. Todos os direitos reservados.</div>
-                            <div className="flex items-center gap-1 text-xs text-slate-400 font-bold">webmotors | Santander</div>
-                        </div>
-                    </footer>
-                </div>
-            );
-        };
-
         // ── StudioScreen ─────────────────────────────────────────────────────────
         const StudioScreen = () => {
             const navigate = useNavigate();
@@ -1423,6 +1326,7 @@
                                     </div>
                                 )}
 
+                                <div className="space-y-3 pt-2">
                                     <button
                                         onClick={() => navigate('/')}
                                         className="w-full h-12 border-2 border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 group"
@@ -1431,49 +1335,51 @@
                                         <span className="uppercase tracking-widest text-xs">Voltar para Upload</span>
                                     </button>
                                     <button
-                                        onClick={() => navigate('/studio')}
-                                        className="w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2 bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"
+                                        onClick={processPhoto}
+                                        disabled={processing || !currentPhoto}
+                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
                                     >
-                                        <span className="material-symbols-outlined">arrow_forward</span>
-                                        <span className="uppercase tracking-widest text-sm">Continuar para Anúncio</span>
+                                        {processing ? (
+                                            <React.Fragment>
+                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                </svg>
+                                                <span className="uppercase tracking-widest text-sm">Processando...</span>
+                                            </React.Fragment>
+                                        ) : (
+                                            <React.Fragment>
+                                                <span className="material-symbols-outlined">bolt</span>
+                                                <span className="uppercase tracking-widest text-sm">
+                                                    {currentProcessed ? "Reprocessar" : "Remover Fundo"}
+                                                </span>
+                                            </React.Fragment>
+                                        )}
                                     </button>
-                                    
-                                    {/* Remover Fundo button - moved to middle section */}
+
+                                    {/* Download button - shown after processing */}
+                                    {currentProcessed && (
+                                        <a
+                                            href={currentProcessed}
+                                            download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
+                                            className="w-full h-11 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">download</span>
+                                            <span className="uppercase tracking-widest text-xs">Baixar esta foto</span>
+                                        </a>
+                                    )}
+
+                                    {/* Gerar Vídeo */}
                                     <div className="pt-2 border-t border-slate-100">
                                         <button
-                                            onClick={processPhoto}
-                                            disabled={processing || !currentPhoto}
-                                            className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
+                                            onClick={() => setShowVideoModal(true)}
+                                            disabled={photos.length === 0 && filmstripPhotos.length === 0}
+                                            className="w-full h-12 bg-gradient-to-r from-[#1a1b26] to-[#2d2f45] text-white font-bold rounded-lg hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2 group"
                                         >
-                                            {processing ? (
-                                                <React.Fragment>
-                                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                                    </svg>
-                                                    <span className="uppercase tracking-widest text-sm">Processando...</span>
-                                                </React.Fragment>
-                                            ) : (
-                                                <React.Fragment>
-                                                    <span className="material-symbols-outlined">bolt</span>
-                                                    <span className="uppercase tracking-widest text-sm">
-                                                        {currentProcessed ? "Reprocessar" : "Remover Fundo"}
-                                                    </span>
-                                                </React.Fragment>
-                                            )}
+                                            <span className="material-symbols-outlined text-lg group-hover:scale-110 transition-transform" style={{fontVariationSettings:"'FILL' 1"}}>movie</span>
+                                            <span className="uppercase tracking-widest text-xs">Gerar Vídeo</span>
+                                            <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-primary/80">IA</span>
                                         </button>
-
-                                        {/* Download button - shown after processing */}
-                                        {currentProcessed && (
-                                            <a
-                                                href={currentProcessed}
-                                                download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
-                                                className="mt-3 w-full h-11 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
-                                            >
-                                                <span className="material-symbols-outlined text-sm">download</span>
-                                                <span className="uppercase tracking-widest text-xs">Baixar esta foto</span>
-                                            </a>
-                                        )}
                                     </div>
                                 </div>
                             </aside>
@@ -1596,7 +1502,6 @@
                 <MemoryRouter>
                     <Routes>
                         <Route path="/" element={<UploadScreen />} />
-                        <Route path="/plate" element={<PlateScreen />} />
                         <Route path="/studio" element={<StudioScreen />} />
                     </Routes>
                 </MemoryRouter>
