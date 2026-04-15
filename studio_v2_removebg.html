@@ -536,28 +536,13 @@
                                 role: 'user',
                                 content: [
                                     { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
-                                    { type: 'text', text: `Você é um especialista em automóveis. Analise esta imagem de carro e responda APENAS com um JSON válido, sem markdown, no seguinte formato:
-{
-  "marca": "Toyota",
-  "modelo": "Corolla",
-  "versao": "XEi 2.0",
-  "ano": "2023",
-  "cor": "Branco Pérola",
-  "destaques": [
-    "Motor 2.0 flex 177cv",
-    "Central multimídia 9\"",
-    "Painel digital 12.3\"",
-    "Suspensão independente"
-  ],
-  "tagline": "Sofisticação em cada detalhe"
-}
-Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 características visuais ou técnicas marcantes do veículo.` }
+                                    { type: 'text', text: 'Você é um especialista em automóveis. Analise esta imagem de carro e responda APENAS com um JSON válido, sem markdown, no seguinte formato:\n{\n  "marca": "Toyota",\n  "modelo": "Corolla",\n  "versao": "XEi 2.0",\n  "ano": "2023",\n  "cor": "Branco Pérola",\n  "destaques": [\n    "Motor 2.0 flex 177cv",\n    "Central multimidia 9 polegadas",\n    "Painel digital 12.3 polegadas",\n    "Suspensão independente"\n  ],\n  "tagline": "Sofisticação em cada detalhe"\n}\nSe não conseguir identificar algum campo, use null. Os destaques devem ser 4 características visuais ou técnicas marcantes do veículo.' }
                                 ]
                             }]
                         })
                     });
                     const data = await response.json();
-                    const text = data.content?.[0]?.text || '{}';
+                    const text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '{}';
                     const clean = text.replace(/```json|```/g, '').trim();
                     return JSON.parse(clean);
                 } catch(e) {
@@ -661,7 +646,7 @@ Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 ca
                     ctx.translate(x, floorY);
                     ctx.scale(1, -1);
                     const grad = ctx.createLinearGradient(0, 0, 0, cH * 0.4);
-                    grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
+                    grad.addColorStop(0, 'rgba(255,255,255,' + alpha + ')');
                     grad.addColorStop(1, 'rgba(255,255,255,0)');
                     ctx.fillStyle = grad;
                     ctx.fillRect(0, 0, cW, cH * 0.4);
@@ -748,7 +733,7 @@ Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 ca
                 for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
                     const img = images[imgIdx];
                     const isLast = imgIdx === images.length - 1;
-                    const highlight = info.destaques?.[imgIdx] || null;
+                    const highlight = (info.destaques && info.destaques[imgIdx]) ? info.destaques[imgIdx] : null;
 
                     for (let f = 0; f < perPhoto; f++) {
                         const t = f / perPhoto;
@@ -923,7 +908,7 @@ Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 ca
                 if (!videoUrl) return;
                 const a = document.createElement('a');
                 a.href = videoUrl;
-                a.download = `${(carInfo?.marca || 'veiculo')}_${(carInfo?.modelo || 'video')}_webmotors.webm`.replace(/\s+/g, '_');
+                a.download = ((carInfo && carInfo.marca ? carInfo.marca : 'veiculo') + '_' + (carInfo && carInfo.modelo ? carInfo.modelo : 'video') + '_webmotors.webm').replace(/\s+/g, '_');
                 a.click();
             };
 
@@ -988,8 +973,8 @@ Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 ca
                                             <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
                                                 <circle cx="40" cy="40" r="34" fill="none" stroke="#f1f5f9" strokeWidth="6"/>
                                                 <circle cx="40" cy="40" r="34" fill="none" stroke="#BC0032" strokeWidth="6"
-                                                    strokeDasharray={`${2 * Math.PI * 34}`}
-                                                    strokeDashoffset={`${2 * Math.PI * 34 * (1 - progress/100)}`}
+                                                    strokeDasharray={String(2 * Math.PI * 34)}
+                                                    strokeDashoffset={String(2 * Math.PI * 34 * (1 - progress/100))}
                                                     strokeLinecap="round"
                                                     style={{transition: 'stroke-dashoffset 0.3s ease'}}
                                                 />
@@ -1007,7 +992,7 @@ Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 ca
                                         <div className="bg-surface-container-low rounded-xl p-4">
                                             <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Veículo identificado</p>
                                             <p className="font-black text-on-surface text-lg">{[carInfo.marca, carInfo.modelo].filter(Boolean).join(' ')}</p>
-                                            {carInfo.versao && <p className="text-sm text-slate-500">{carInfo.versao} {carInfo.ano ? `· ${carInfo.ano}` : ''}</p>}
+                                            {carInfo.versao && <p className="text-sm text-slate-500">{carInfo.versao} {carInfo.ano ? '· ' + carInfo.ano : ''}</p>}
                                         </div>
                                     )}
                                 </div>
@@ -1020,7 +1005,7 @@ Se não conseguir identificar algum campo, use null. Os destaques devem ser 4 ca
                                             <span className="material-symbols-outlined text-primary" style={{fontVariationSettings:"'FILL' 1"}}>directions_car</span>
                                             <div>
                                                 <p className="font-black text-on-surface text-sm">{[carInfo.marca, carInfo.modelo].filter(Boolean).join(' ')}</p>
-                                                {carInfo.versao && <p className="text-xs text-slate-400">{carInfo.versao}{carInfo.ano ? ` · ${carInfo.ano}` : ''}</p>}
+                                                {carInfo.versao && <p className="text-xs text-slate-400">{carInfo.versao}{carInfo.ano ? ' · ' + carInfo.ano : ''}</p>}
                                             </div>
                                             <div className="ml-auto flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
                                                 <span className="material-symbols-outlined text-sm" style={{fontVariationSettings:"'FILL' 1"}}>check_circle</span>
