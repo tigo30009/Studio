@@ -830,7 +830,7 @@
                                             <span className="uppercase tracking-widest text-xs">Baixar todas ({Object.keys(processedImgs).length} fotos)</span>
                                         </button>
                                     )}
-                                    {Object.keys(processedImgs).length > 0 && (
+                                    {photos.length > 0 && (
                                         <button
                                             onClick={() => {
                                                 sessionStorage.setItem('studioProcessedImgs', JSON.stringify(processedImgs));
