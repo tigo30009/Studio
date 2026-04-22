@@ -3,9 +3,6 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-    <meta http-equiv="Pragma" content="no-cache"/>
-    <meta http-equiv="Expires" content="0"/>
     <title>Webmotors Cockpit - Estúdio</title>
     
     <!-- External Fonts and Icons -->
@@ -470,7 +467,7 @@
 
                             <div className="mt-16 flex justify-end">
                                 <button
-                                    onClick={() => { if (photos.length > 0) { sessionStorage.setItem('studioPhotos', JSON.stringify(photos)); navigate('/plate'); } }}
+                                    onClick={() => { if (photos.length > 0) { sessionStorage.setItem('studioPhotos', JSON.stringify(photos)); navigate('/studio'); } }}
                                     disabled={photos.length === 0}
                                     className={["h-11 px-8 rounded-md text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all", photos.length > 0 ? "bg-[#bc0032] hover:bg-[#920025] cursor-pointer" : "bg-slate-300 cursor-not-allowed"].join(' ')}
                                 >
@@ -488,679 +485,6 @@
         // --- Screen 2 Components ---
 
 
-        // ── Video Generation Modal ────────────────────────────────────────────────
-        const VideoModal = ({ photos, processedImgs, onClose }) => {
-            const [phase, setPhase] = React.useState('idle'); // idle | analyzing | rendering | done | error
-            const [progress, setProgress] = React.useState(0);
-            const [videoUrl, setVideoUrl] = React.useState(null);
-            const [carInfo, setCarInfo] = React.useState(null);
-            const [statusMsg, setStatusMsg] = React.useState('');
-            const canvasRef = React.useRef(null);
-            const mediaRecorderRef = React.useRef(null);
-            const chunksRef = React.useRef([]);
-            const animFrameRef = React.useRef(null);
-
-            // Pick best photos available: processed first, else originals
-            const getPhotoSrcs = () => {
-                const srcs = [];
-                for (let i = 0; i < photos.length; i++) {
-                    srcs.push(processedImgs[i] || photos[i].preview);
-                }
-                return srcs.length > 0 ? srcs : [];
-            };
-
-            // Step 1: Ask Claude to identify the car
-            const analyzeCarWithClaude = async (photoSrcs) => {
-                setStatusMsg('Identificando veículo com IA...');
-                setProgress(10);
-                try {
-                    const imgSrc = photoSrcs[0];
-                    // Convert URL/dataurl to base64
-                    let base64Data = imgSrc;
-                    if (imgSrc.startsWith('http') || imgSrc.startsWith('blob')) {
-                        const res = await fetch(imgSrc);
-                        const blob = await res.blob();
-                        base64Data = await new Promise(r => {
-                            const fr = new FileReader();
-                            fr.onload = () => r(fr.result);
-                            fr.readAsDataURL(blob);
-                        });
-                    }
-                    const b64 = base64Data.split(',')[1] || base64Data;
-                    const mime = base64Data.startsWith('data:') ? base64Data.split(';')[0].split(':')[1] : 'image/jpeg';
-
-                    const response = await fetch('https://api.anthropic.com/v1/messages', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            model: 'claude-sonnet-4-20250514',
-                            max_tokens: 1000,
-                            messages: [{
-                                role: 'user',
-                                content: [
-                                    { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
-                                    { type: 'text', text: 'Você é um especialista em automóveis. Analise esta imagem de carro e responda APENAS com um JSON válido, sem markdown, no seguinte formato:\n{\n  "marca": "Toyota",\n  "modelo": "Corolla",\n  "versao": "XEi 2.0",\n  "ano": "2023",\n  "cor": "Branco Pérola",\n  "destaques": [\n    "Motor 2.0 flex 177cv",\n    "Central multimidia 9 polegadas",\n    "Painel digital 12.3 polegadas",\n    "Suspensão independente"\n  ],\n  "tagline": "Sofisticação em cada detalhe"\n}\nSe não conseguir identificar algum campo, use null. Os destaques devem ser 4 características visuais ou técnicas marcantes do veículo.' }
-                                ]
-                            }]
-                        })
-                    });
-                    const data = await response.json();
-                    const text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '{}';
-                    const clean = text.replace(/```json|```/g, '').trim();
-                    return JSON.parse(clean);
-                } catch(e) {
-                    console.warn('Claude analyze failed:', e);
-                    return {
-                        marca: 'Veículo', modelo: 'Premium', versao: null, ano: new Date().getFullYear().toString(),
-                        cor: null, destaques: ['Design exclusivo', 'Acabamento premium', 'Conforto superior', 'Alta performance'],
-                        tagline: 'Uma experiência única'
-                    };
-                }
-            };
-
-            // Step 2: Render video using Canvas + MediaRecorder
-            const renderVideo = async (photoSrcs, info) => {
-                setStatusMsg('Renderizando vídeo...');
-                setProgress(30);
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
-                canvas.width = 1280;
-                canvas.height = 720;
-
-                // Load all images
-                const loadImg = (src) => new Promise((res, rej) => {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => res(img);
-                    img.onerror = () => { img.crossOrigin = ''; img.onload = () => res(img); img.onerror = () => rej(); img.src = src; };
-                    img.src = src;
-                });
-
-                const images = [];
-                for (const src of photoSrcs) {
-                    try { images.push(await loadImg(src)); } catch(e) {}
-                }
-                if (images.length === 0) throw new Error('Nenhuma imagem disponível');
-
-                setProgress(45);
-
-                // Setup MediaRecorder
-                const stream = canvas.captureStream(30);
-                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-                const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
-                mediaRecorderRef.current = recorder;
-                chunksRef.current = [];
-                recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-
-                const recorderStopped = new Promise(r => { recorder.onstop = r; });
-                recorder.start();
-
-                // ─── Video Sections ───────────────────────────────────────────────
-                // FPS & timing
-                const FPS = 30;
-                const W = canvas.width, H = canvas.height;
-
-                // Helper: render one frame (awaitable via rAF)
-                const frame = () => new Promise(r => requestAnimationFrame(r));
-
-                // ─── Helpers ─────────────────────────────────────────────────────
-                const clearCanvas = (bg = '#0a0a0f') => {
-                    ctx.fillStyle = bg;
-                    ctx.fillRect(0, 0, W, H);
-                };
-
-                const drawVignette = () => {
-                    const grad = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.85);
-                    grad.addColorStop(0, 'rgba(0,0,0,0)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.65)');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, 0, W, H);
-                };
-
-                const drawRedLine = (alpha = 1) => {
-                    ctx.save();
-                    ctx.globalAlpha = alpha;
-                    ctx.fillStyle = '#BC0032';
-                    ctx.fillRect(0, H - 5, W, 5);
-                    ctx.restore();
-                };
-
-                const easeInOut = (t) => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-                const lerp = (a, b, t) => a + (b - a) * t;
-
-                const drawCarOnCanvas = (img, scale = 1, offsetX = 0, offsetY = 0, alpha = 1) => {
-                    const maxW = W * 0.88, maxH = H * 0.72;
-                    const s = Math.min(maxW / img.width, maxH / img.height) * scale;
-                    const cW = img.width * s, cH = img.height * s;
-                    const x = (W - cW) / 2 + offsetX;
-                    const floorY = H * 0.80;
-                    const y = floorY - cH + offsetY;
-                    ctx.save();
-                    ctx.globalAlpha = alpha;
-                    ctx.drawImage(img, x, y, cW, cH);
-                    ctx.restore();
-                    return { x, y, cW, cH, floorY };
-                };
-
-                const drawReflection = (img, carInfo2, alpha = 0.18) => {
-                    const { x, y, cW, cH, floorY } = carInfo2;
-                    ctx.save();
-                    ctx.globalAlpha = alpha;
-                    ctx.translate(x, floorY);
-                    ctx.scale(1, -1);
-                    const grad = ctx.createLinearGradient(0, 0, 0, cH * 0.4);
-                    grad.addColorStop(0, 'rgba(255,255,255,' + alpha + ')');
-                    grad.addColorStop(1, 'rgba(255,255,255,0)');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, 0, cW, cH * 0.4);
-                    ctx.globalCompositeOperation = 'source-atop';
-                    ctx.drawImage(img, 0, 0, cW, cH);
-                    ctx.restore();
-                };
-
-                const drawText = (text, x, y, font, color, align = 'left', alpha = 1) => {
-                    ctx.save();
-                    ctx.globalAlpha = alpha;
-                    ctx.font = font;
-                    ctx.fillStyle = color;
-                    ctx.textAlign = align;
-                    ctx.fillText(text, x, y);
-                    ctx.restore();
-                };
-
-                const drawBadge = (text, x, y, alpha = 1) => {
-                    ctx.save();
-                    ctx.globalAlpha = alpha;
-                    const pad = 12;
-                    ctx.font = 'bold 14px Figtree, sans-serif';
-                    const tw = ctx.measureText(text).width;
-                    ctx.fillStyle = '#BC0032';
-                    roundRect(ctx, x, y - 20, tw + pad*2, 28, 4);
-                    ctx.fill();
-                    ctx.fillStyle = '#fff';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(text, x + pad, y);
-                    ctx.restore();
-                };
-
-                const roundRect = (ctx2, x, y, w, h, r) => {
-                    ctx2.beginPath();
-                    ctx2.moveTo(x + r, y);
-                    ctx2.lineTo(x + w - r, y);
-                    ctx2.quadraticCurveTo(x + w, y, x + w, y + r);
-                    ctx2.lineTo(x + w, y + h - r);
-                    ctx2.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                    ctx2.lineTo(x + r, y + h);
-                    ctx2.quadraticCurveTo(x, y + h, x, y + h - r);
-                    ctx2.lineTo(x, y + r);
-                    ctx2.quadraticCurveTo(x, y, x + r, y);
-                    ctx2.closePath();
-                };
-
-                // Determine card title
-                const carTitle = [info.marca, info.modelo].filter(Boolean).join(' ');
-                const carSub = [info.versao, info.ano].filter(Boolean).join(' · ');
-
-                // ─── SECTION 1: Intro — dark fade-in with title (2s) ─────────────
-                const introFrames = FPS * 2;
-                for (let f = 0; f < introFrames; f++) {
-                    const t = f / introFrames;
-                    const ease = easeInOut(t);
-                    clearCanvas('#0a0a0f');
-                    // Subtle gradient bg
-                    const bgGrad = ctx.createRadialGradient(W*0.5, H*0.6, 0, W*0.5, H*0.6, H);
-                    bgGrad.addColorStop(0, '#1a0008');
-                    bgGrad.addColorStop(1, '#0a0a0f');
-                    ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, W, H);
-                    // Brand line fade
-                    ctx.save();
-                    ctx.globalAlpha = Math.min(1, ease * 2);
-                    ctx.fillStyle = '#BC0032';
-                    ctx.fillRect(W/2 - 40, H*0.38, 80, 3);
-                    ctx.restore();
-                    // Car title fade-up
-                    const textY = H * 0.5 - (1 - ease) * 30;
-                    drawText('WEBMOTORS', W/2, H*0.38 - 20, 'bold 13px Figtree,sans-serif', '#BC0032', 'center', ease);
-                    drawText(carTitle.toUpperCase(), W/2, textY, 'bold 68px Figtree,sans-serif', '#ffffff', 'center', ease);
-                    if (carSub) drawText(carSub, W/2, textY + 46, '300 22px Figtree,sans-serif', 'rgba(255,255,255,0.6)', 'center', ease);
-                    drawRedLine(ease);
-                    setProgress(45 + Math.floor(t * 10));
-                    await frame();
-                }
-
-                // ─── SECTION 2: Car Showcase — one scene per photo (8s total) ───
-                const perPhoto = Math.max(1, Math.round((FPS * (photos.length <= 2 ? 7 : 5)) / images.length));
-                const totalShowFrames = perPhoto * images.length;
-
-                for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
-                    const img = images[imgIdx];
-                    const isLast = imgIdx === images.length - 1;
-                    const highlight = (info.destaques && info.destaques[imgIdx]) ? info.destaques[imgIdx] : null;
-
-                    for (let f = 0; f < perPhoto; f++) {
-                        const t = f / perPhoto;
-                        const ease = easeInOut(t);
-                        // Fade between scenes
-                        const fadeIn = Math.min(1, t * 4);
-                        const fadeOut = isLast ? 1 : Math.min(1, (1 - t) * 4);
-                        const sceneAlpha = Math.min(fadeIn, fadeOut);
-
-                        // Background — dark gradient + subtle color
-                        clearCanvas('#0d0d12');
-                        const bg2 = ctx.createLinearGradient(0, 0, W, H);
-                        bg2.addColorStop(0, '#0d0d16');
-                        bg2.addColorStop(1, '#1a0d0d');
-                        ctx.fillStyle = bg2;
-                        ctx.fillRect(0, 0, W, H);
-
-                        // Subtle floor line
-                        ctx.save();
-                        ctx.globalAlpha = 0.12 * sceneAlpha;
-                        ctx.fillStyle = '#BC0032';
-                        ctx.fillRect(0, H * 0.80 + 2, W, 1);
-                        ctx.restore();
-
-                        // Draw car with slow zoom/pan
-                        const zoom = lerp(1.0, 1.05, ease);
-                        const panX = lerp(-8, 8, ease) * (imgIdx % 2 === 0 ? 1 : -1);
-                        const ci = drawCarOnCanvas(img, zoom, panX, 0, sceneAlpha);
-                        drawReflection(img, ci, 0.12 * sceneAlpha);
-
-                        drawVignette();
-
-                        // Car name (small, always visible)
-                        drawText(carTitle.toUpperCase(), 60, H - 50, 'bold 16px Figtree,sans-serif', 'rgba(255,255,255,0.5)', 'left', sceneAlpha);
-
-                        // Highlight badge — slides in at t>0.2
-                        if (highlight) {
-                            const badgeT = Math.max(0, Math.min(1, (t - 0.2) / 0.3));
-                            const badgeAlpha = badgeT * sceneAlpha;
-                            const badgeX = lerp(-200, 60, easeInOut(badgeT));
-                            drawBadge(highlight, badgeX, H * 0.72);
-                        }
-
-                        // Photo counter dots
-                        const dotR = 3, dotGap = 10, dotsW = images.length * (dotR*2 + dotGap) - dotGap;
-                        let dotX = W/2 - dotsW/2;
-                        for (let d = 0; d < images.length; d++) {
-                            ctx.beginPath();
-                            ctx.arc(dotX + dotR, H - 28, dotR, 0, Math.PI*2);
-                            ctx.fillStyle = d === imgIdx ? '#BC0032' : 'rgba(255,255,255,0.3)';
-                            ctx.globalAlpha = sceneAlpha;
-                            ctx.fill();
-                            ctx.globalAlpha = 1;
-                            dotX += dotR*2 + dotGap;
-                        }
-
-                        drawRedLine(sceneAlpha);
-                        const totalDone = imgIdx * perPhoto + f;
-                        setProgress(55 + Math.floor((totalDone / totalShowFrames) * 30));
-                        await frame();
-                    }
-                }
-
-                // ─── SECTION 3: Feature Highlights grid (5s) ────────────────────
-                const hlFrames = FPS * 5;
-                const mainImg = images[0];
-                for (let f = 0; f < hlFrames; f++) {
-                    const t = f / hlFrames;
-                    const ease = easeInOut(t);
-                    clearCanvas('#0a0a0f');
-                    const bgG = ctx.createRadialGradient(W*0.25, H*0.5, 0, W*0.25, H*0.5, W*0.6);
-                    bgG.addColorStop(0, '#180008');
-                    bgG.addColorStop(1, '#0a0a0f');
-                    ctx.fillStyle = bgG;
-                    ctx.fillRect(0, 0, W, H);
-
-                    // Car on left half
-                    const carFade = Math.min(1, ease * 1.5);
-                    const ci2 = drawCarOnCanvas(mainImg, 0.65, -W*0.18, 0, carFade);
-                    drawReflection(mainImg, ci2, 0.08 * carFade);
-                    drawVignette();
-
-                    // Right panel — destaques
-                    const px = W * 0.56;
-                    const destaques = info.destaques || [];
-                    // Title
-                    const titleT = Math.min(1, ease * 3);
-                    drawText('DIFERENCIAIS', px, H*0.27, 'bold 12px Figtree,sans-serif', '#BC0032', 'left', titleT);
-                    drawText(carTitle.toUpperCase(), px, H*0.35, 'bold 38px Figtree,sans-serif', '#fff', 'left', titleT);
-                    if (carSub) drawText(carSub, px, H*0.43, '300 17px Figtree,sans-serif', 'rgba(255,255,255,0.55)', 'left', titleT);
-
-                    // Feature items staggered
-                    destaques.slice(0, 4).forEach((d, i) => {
-                        const itemT = Math.max(0, Math.min(1, (ease - i * 0.06) / 0.25));
-                        const itemX = lerp(px + 40, px, easeInOut(itemT));
-                        const iy = H * 0.54 + i * 44;
-                        ctx.save();
-                        ctx.globalAlpha = itemT;
-                        // Dot
-                        ctx.beginPath();
-                        ctx.arc(itemX - 14, iy - 6, 4, 0, Math.PI*2);
-                        ctx.fillStyle = '#BC0032';
-                        ctx.fill();
-                        // Text
-                        ctx.font = '500 16px Figtree,sans-serif';
-                        ctx.fillStyle = '#fff';
-                        ctx.textAlign = 'left';
-                        ctx.fillText(d, itemX, iy);
-                        ctx.restore();
-                    });
-
-                    drawRedLine(Math.min(1, ease * 2));
-                    setProgress(85 + Math.floor(t * 8));
-                    await frame();
-                }
-
-                // ─── SECTION 4: Outro CTA (2s) ──────────────────────────────────
-                const outroFrames = FPS * 2;
-                for (let f = 0; f < outroFrames; f++) {
-                    const t = f / outroFrames;
-                    const ease = easeInOut(t);
-                    const fadeOut = f > outroFrames * 0.7 ? 1 - (t - 0.7) / 0.3 : 1;
-                    clearCanvas('#0a0a0f');
-                    const bgO = ctx.createRadialGradient(W/2, H*0.5, 0, W/2, H*0.5, H);
-                    bgO.addColorStop(0, '#1a0008');
-                    bgO.addColorStop(1, '#0a0a0f');
-                    ctx.fillStyle = bgO;
-                    ctx.fillRect(0, 0, W, H);
-
-                    const textA = Math.min(1, ease * 3) * fadeOut;
-                    drawText('WEBMOTORS', W/2, H*0.38, 'bold 13px Figtree,sans-serif', '#BC0032', 'center', textA);
-                    ctx.save();
-                    ctx.globalAlpha = textA * 0.6;
-                    ctx.fillStyle = '#BC0032';
-                    ctx.fillRect(W/2 - 40, H*0.41, 80, 2);
-                    ctx.restore();
-                    drawText(info.tagline || 'O seu próximo carro está aqui', W/2, H*0.53, '300 28px Figtree,sans-serif', '#fff', 'center', textA);
-                    drawText('webmotors.com.br', W/2, H*0.62, '500 18px Figtree,sans-serif', 'rgba(255,255,255,0.5)', 'center', textA * 0.8);
-                    drawRedLine(fadeOut);
-                    setProgress(93 + Math.floor(t * 5));
-                    await frame();
-                }
-
-                // Stop recording
-                recorder.stop();
-                await recorderStopped;
-                const blob = new Blob(chunksRef.current, { type: mimeType });
-                return URL.createObjectURL(blob);
-            };
-
-            const startGeneration = async () => {
-                setPhase('analyzing');
-                setProgress(5);
-                try {
-                    const srcs = getPhotoSrcs();
-                    if (srcs.length === 0) throw new Error('Adicione fotos antes de gerar o vídeo.');
-                    const info = await analyzeCarWithClaude(srcs);
-                    setCarInfo(info);
-                    setPhase('rendering');
-                    const url = await renderVideo(srcs, info);
-                    setVideoUrl(url);
-                    setProgress(100);
-                    setPhase('done');
-                    setStatusMsg('Vídeo gerado com sucesso!');
-                } catch(e) {
-                    setPhase('error');
-                    setStatusMsg(e.message || 'Erro ao gerar vídeo');
-                }
-            };
-
-            const downloadVideo = () => {
-                if (!videoUrl) return;
-                const a = document.createElement('a');
-                a.href = videoUrl;
-                a.download = ((carInfo && carInfo.marca ? carInfo.marca : 'veiculo') + '_' + (carInfo && carInfo.modelo ? carInfo.modelo : 'video') + '_webmotors.webm').replace(/\s+/g, '_');
-                a.click();
-            };
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1a1b26] to-[#2d2f45] flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-white text-lg" style={{fontVariationSettings:"'FILL' 1"}}>movie</span>
-                                </div>
-                                <div>
-                                    <h2 className="font-black text-on-surface text-base uppercase tracking-wide">Gerar Vídeo</h2>
-                                    <p className="text-xs text-slate-400 font-medium">IA analisa o veículo e cria um vídeo premium</p>
-                                </div>
-                            </div>
-                            <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
-                                <span className="material-symbols-outlined text-slate-400">close</span>
-                            </button>
-                        </div>
-
-                        {/* Hidden canvas */}
-                        <canvas ref={canvasRef} className="hidden" />
-
-                        {/* Body */}
-                        <div className="p-6">
-                            {phase === 'idle' && (
-                                <div className="space-y-5">
-                                    <div className="bg-surface-container-low rounded-xl p-4 space-y-3">
-                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">O que será gerado</p>
-                                        {[
-                                            { icon: 'smart_toy', label: 'Identificação automática de marca, modelo e versão' },
-                                            { icon: 'slideshow', label: 'Transições cinematográficas entre as fotos do veículo' },
-                                            { icon: 'format_list_bulleted', label: 'Destaques técnicos e visuais do carro em overlay' },
-                                            { icon: 'timer', label: 'Duração entre 25 e 40 segundos — ideal para anúncios' },
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex items-center gap-3">
-                                                <span className="material-symbols-outlined text-primary text-lg" style={{fontVariationSettings:"'FILL' 1"}}>{item.icon}</span>
-                                                <span className="text-sm text-on-surface">{item.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                                        <span className="material-symbols-outlined text-amber-500 text-sm">info</span>
-                                        <p className="text-xs text-amber-700">{photos.length} foto{photos.length !== 1 ? 's' : ''} disponível{photos.length !== 1 ? 'is' : ''}. Fotos com fundo removido geram resultados melhores.</p>
-                                    </div>
-                                    <button
-                                        onClick={startGeneration}
-                                        className="w-full h-14 bg-gradient-to-r from-[#BC0032] to-[#E22446] text-white font-black rounded-xl hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm"
-                                    >
-                                        <span className="material-symbols-outlined" style={{fontVariationSettings:"'FILL' 1"}}>auto_awesome</span>
-                                        Gerar Vídeo com IA
-                                    </button>
-                                </div>
-                            )}
-
-                            {(phase === 'analyzing' || phase === 'rendering') && (
-                                <div className="space-y-6 py-4">
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="relative w-20 h-20">
-                                            <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                                                <circle cx="40" cy="40" r="34" fill="none" stroke="#f1f5f9" strokeWidth="6"/>
-                                                <circle cx="40" cy="40" r="34" fill="none" stroke="#BC0032" strokeWidth="6"
-                                                    strokeDasharray={String(2 * Math.PI * 34)}
-                                                    strokeDashoffset={String(2 * Math.PI * 34 * (1 - progress/100))}
-                                                    strokeLinecap="round"
-                                                    style={{transition: 'stroke-dashoffset 0.3s ease'}}
-                                                />
-                                            </svg>
-                                            <span className="absolute inset-0 flex items-center justify-center font-black text-on-surface text-sm">{progress}%</span>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="font-bold text-on-surface text-sm">{statusMsg}</p>
-                                            <p className="text-xs text-slate-400 mt-1">
-                                                {phase === 'analyzing' ? 'Usando Claude para identificar o veículo...' : 'Renderizando frames no canvas...'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {carInfo && (
-                                        <div className="bg-surface-container-low rounded-xl p-4">
-                                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Veículo identificado</p>
-                                            <p className="font-black text-on-surface text-lg">{[carInfo.marca, carInfo.modelo].filter(Boolean).join(' ')}</p>
-                                            {carInfo.versao && <p className="text-sm text-slate-500">{carInfo.versao} {carInfo.ano ? '· ' + carInfo.ano : ''}</p>}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {phase === 'done' && videoUrl && (
-                                <div className="space-y-4">
-                                    {carInfo && (
-                                        <div className="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl">
-                                            <span className="material-symbols-outlined text-primary" style={{fontVariationSettings:"'FILL' 1"}}>directions_car</span>
-                                            <div>
-                                                <p className="font-black text-on-surface text-sm">{[carInfo.marca, carInfo.modelo].filter(Boolean).join(' ')}</p>
-                                                {carInfo.versao && <p className="text-xs text-slate-400">{carInfo.versao}{carInfo.ano ? ' · ' + carInfo.ano : ''}</p>}
-                                            </div>
-                                            <div className="ml-auto flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                                                <span className="material-symbols-outlined text-sm" style={{fontVariationSettings:"'FILL' 1"}}>check_circle</span>
-                                                Concluído
-                                            </div>
-                                        </div>
-                                    )}
-                                    <video
-                                        src={videoUrl}
-                                        controls
-                                        autoPlay
-                                        loop
-                                        className="w-full rounded-xl bg-black aspect-video"
-                                    />
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={downloadVideo}
-                                            className="flex-1 h-12 bg-gradient-to-r from-[#BC0032] to-[#E22446] text-white font-bold rounded-xl hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">download</span>
-                                            Baixar Vídeo
-                                        </button>
-                                        <button
-                                            onClick={() => { setPhase('idle'); setProgress(0); setVideoUrl(null); setCarInfo(null); }}
-                                            className="h-12 px-5 border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all text-xs uppercase tracking-widest"
-                                        >
-                                            Gerar Novo
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {phase === 'error' && (
-                                <div className="space-y-4 py-4">
-                                    <div className="flex flex-col items-center gap-3 text-center">
-                                        <div className="w-14 h-14 rounded-full bg-error-container flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-error text-2xl">error</span>
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-on-surface">Ocorreu um erro</p>
-                                            <p className="text-sm text-slate-500 mt-1">{statusMsg}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { setPhase('idle'); setProgress(0); }} className="w-full h-12 border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all text-xs uppercase tracking-widest">
-                                        Tentar Novamente
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-
-        // ── PlateScreen ──────────────────────────────────────────────────────────
-        const PlateScreen = () => {
-            const navigate = useNavigate();
-            const [plate, setPlate] = React.useState('');
-            const [loading, setLoading] = React.useState(false);
-            const [error, setError] = React.useState('');
-
-            const handleContinue = () => {
-                if (plate.trim() === '') {
-                    setError('Por favor, insira a placa do veículo');
-                    return;
-                }
-                sessionStorage.setItem('vehiclePlate', plate);
-                navigate('/studio');
-            };
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
-                    <Sidebar version="collapsed" />
-
-                    <div className="flex-1 flex items-center justify-center p-6">
-                        <div className="w-full max-w-md">
-                            <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6">
-                                <div className="text-center space-y-2">
-                                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <span className="material-symbols-outlined text-primary text-6xl" style={{fontVariationSettings: "'FILL' 1"}}>confirmation_number</span>
-                                    </div>
-                                    <h1 className="text-2xl font-bold text-on-surface">Informar Placa</h1>
-                                    <p className="text-sm text-on-surface/60">Digite a placa do veículo para continuar</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-on-surface uppercase tracking-widest">Placa do Veículo</label>
-                                    <input
-                                        type="text"
-                                        value={plate}
-                                        onChange={(e) => {
-                                            setPlate(e.target.value.toUpperCase());
-                                            setError('');
-                                        }}
-                                        placeholder="Ex: ABC-1234"
-                                        maxLength="8"
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-center font-mono text-lg font-bold tracking-widest"
-                                    />
-                                </div>
-
-                                {error && (
-                                    <div className="flex items-start gap-3 px-4 py-3 bg-error-container text-on-error-container rounded-lg text-sm">
-                                        <span className="material-symbols-outlined text-[18px] mt-0.5">warning</span>
-                                        <p className="text-xs">{error}</p>
-                                    </div>
-                                )}
-
-                                <div className="space-y-3 pt-2">
-                                    <button
-                                        onClick={() => navigate('/')}
-                                        className="w-full h-12 border-2 border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 group"
-                                    >
-                                        <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-                                        <span className="uppercase tracking-widest text-xs">Voltar</span>
-                                    </button>
-                                    <button
-                                        onClick={handleContinue}
-                                        disabled={loading || plate.trim() === ''}
-                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", loading || plate.trim() === '' ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
-                                    >
-                                        {loading ? (
-                                            <React.Fragment>
-                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                                </svg>
-                                                <span className="uppercase tracking-widest text-sm">Validando...</span>
-                                            </React.Fragment>
-                                        ) : (
-                                            <React.Fragment>
-                                                <span className="material-symbols-outlined">arrow_forward</span>
-                                                <span className="uppercase tracking-widest text-sm">Continuar para Estúdio</span>
-                                            </React.Fragment>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <footer className="w-full mt-auto py-8 bg-white border-t border-slate-200">
-                        <div className="max-w-[1440px] mx-auto px-8 flex justify-between items-center">
-                            <div className="text-xs text-slate-500 font-medium">© 1995-2024 Webmotors S.A. Todos os direitos reservados.</div>
-                            <div className="flex items-center gap-1 text-xs text-slate-400 font-bold">webmotors | Santander</div>
-                        </div>
-                    </footer>
-                </div>
-            );
-        };
-
-        // ── StudioScreen ─────────────────────────────────────────────────────────
         const StudioScreen = () => {
             const navigate = useNavigate();
             const [sliderPos, setSliderPos] = React.useState(50);
@@ -1169,7 +493,6 @@
             const [processing, setProcessing] = React.useState(false);
             const [processedImgs, setProcessedImgs] = React.useState({});
             const [error, setError] = React.useState('');
-            const [showVideoModal, setShowVideoModal] = React.useState(false);
             const isDraggingSlider = React.useRef(false);
 
             // Use photos from upload screen via sessionStorage (set when navigating)
@@ -1423,6 +746,7 @@
                                     </div>
                                 )}
 
+                                <div className="space-y-3 pt-2">
                                     <button
                                         onClick={() => navigate('/')}
                                         className="w-full h-12 border-2 border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 group"
@@ -1431,60 +755,41 @@
                                         <span className="uppercase tracking-widest text-xs">Voltar para Upload</span>
                                     </button>
                                     <button
-                                        onClick={() => navigate('/studio')}
-                                        className="w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2 bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"
+                                        onClick={processPhoto}
+                                        disabled={processing || !currentPhoto}
+                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
                                     >
-                                        <span className="material-symbols-outlined">arrow_forward</span>
-                                        <span className="uppercase tracking-widest text-sm">Continuar para Anúncio</span>
-                                    </button>
-                                    
-                                    {/* Remover Fundo button - moved to middle section */}
-                                    <div className="pt-2 border-t border-slate-100">
-                                        <button
-                                            onClick={processPhoto}
-                                            disabled={processing || !currentPhoto}
-                                            className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
-                                        >
-                                            {processing ? (
-                                                <React.Fragment>
-                                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                                    </svg>
-                                                    <span className="uppercase tracking-widest text-sm">Processando...</span>
-                                                </React.Fragment>
-                                            ) : (
-                                                <React.Fragment>
-                                                    <span className="material-symbols-outlined">bolt</span>
-                                                    <span className="uppercase tracking-widest text-sm">
-                                                        {currentProcessed ? "Reprocessar" : "Remover Fundo"}
-                                                    </span>
-                                                </React.Fragment>
-                                            )}
-                                        </button>
-
-                                        {/* Download button - shown after processing */}
-                                        {currentProcessed && (
-                                            <a
-                                                href={currentProcessed}
-                                                download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
-                                                className="mt-3 w-full h-11 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
-                                            >
-                                                <span className="material-symbols-outlined text-sm">download</span>
-                                                <span className="uppercase tracking-widest text-xs">Baixar esta foto</span>
-                                            </a>
+                                        {processing ? (
+                                            <React.Fragment>
+                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                </svg>
+                                                <span className="uppercase tracking-widest text-sm">Processando...</span>
+                                            </React.Fragment>
+                                        ) : (
+                                            <React.Fragment>
+                                                <span className="material-symbols-outlined">bolt</span>
+                                                <span className="uppercase tracking-widest text-sm">
+                                                    {currentProcessed ? "Reprocessar" : "Remover Fundo"}
+                                                </span>
+                                            </React.Fragment>
                                         )}
-                                    </div>
-                            </aside>
+                                    </button>
 
-                            {/* Video Modal */}
-                            {showVideoModal && (
-                                <VideoModal
-                                    photos={filmstripPhotos}
-                                    processedImgs={processedImgs}
-                                    onClose={() => setShowVideoModal(false)}
-                                />
-                            )}
+                                    {/* Download button - shown after processing */}
+                                    {currentProcessed && (
+                                        <a
+                                            href={currentProcessed}
+                                            download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
+                                            className="w-full h-11 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">download</span>
+                                            <span className="uppercase tracking-widest text-xs">Baixar esta foto</span>
+                                        </a>
+                                    )}
+                                </div>
+                            </aside>
 
                             {/* Right Preview */}
                             <div className="col-span-8 flex flex-col">
@@ -1595,7 +900,6 @@
                 <MemoryRouter>
                     <Routes>
                         <Route path="/" element={<UploadScreen />} />
-                        <Route path="/plate" element={<PlateScreen />} />
                         <Route path="/studio" element={<StudioScreen />} />
                     </Routes>
                 </MemoryRouter>
