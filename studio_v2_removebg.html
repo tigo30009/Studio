@@ -1124,7 +1124,6 @@
         const AnuncioScreen = () => {
             const navigate = useNavigate();
             const [activeImg, setActiveImg] = React.useState(0);
-            const [editando, setEditando] = React.useState(false);
             const [publicado, setPublicado] = React.useState(false);
             const [loading, setLoading] = React.useState(false);
 
@@ -1144,6 +1143,16 @@
                 ? Object.values(processedImgs)
                 : photos.map(p => p.preview);
 
+            // Generate smart description
+            const gerarDescricao = (v) => {
+                if (!v) return '';
+                var itensDestaque = (v.itens || []).slice(0, 4).join(', ');
+                return v.marca + ' ' + v.modelo + ' ' + v.versao + ' em excelente estado de conservação. ' +
+                    'Veículo ' + (v.ano || '').split('/')[0] + ', ' + v.km + ' km rodados, câmbio ' + (v.cambio || '').toLowerCase() + ' e motor ' + (v.combustivel || '').toLowerCase() + '. ' +
+                    (itensDestaque ? 'Itens de série: ' + itensDestaque + ' e muito mais. ' : '') +
+                    'Revisões em dia, documentação ok. Financiamento facilitado, aceita troca. Entre em contato e agende seu test drive!';
+            };
+
             const [form, setForm] = React.useState(() => vehicle ? {
                 titulo: (vehicle.marca + ' ' + vehicle.modelo + ' ' + vehicle.versao).trim(),
                 preco: vehicle.preco || '',
@@ -1154,10 +1163,31 @@
                 carroceria: vehicle.carroceria || '',
                 combustivel: vehicle.combustivel || '',
                 portas: vehicle.portas || '',
-                blindado: vehicle.blindado || '',
+                finalPlaca: vehicle.placa ? vehicle.placa.slice(-1) : '',
                 cidade: (vehicle.cidade || '') + (vehicle.estado ? ' – ' + vehicle.estado : ''),
-            } : {});
+                descricao: gerarDescricao(vehicle),
+            } : { descricao: '' });
 
+            // Toggles — all off by default
+            const [toggles, setToggles] = React.useState({
+                unicoDono: false,
+                ipvaPago: false,
+                aceitaTroca: false,
+                financiamento: false,
+                garantiaFabrica: false,
+                revisoesDia: false,
+            });
+
+            const toggleLabels = {
+                unicoDono: { label: 'Único dono', icon: 'person' },
+                ipvaPago: { label: 'IPVA pago', icon: 'receipt_long' },
+                aceitaTroca: { label: 'Aceita troca', icon: 'swap_horiz' },
+                financiamento: { label: 'Financiamento disponível', icon: 'account_balance' },
+                garantiaFabrica: { label: 'Garantia de fábrica', icon: 'verified_user' },
+                revisoesDia: { label: 'Revisões em dia', icon: 'build_circle' },
+            };
+
+            const setToggle = (k) => setToggles(p => ({ ...p, [k]: !p[k] }));
             const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
             const handlePublicar = async () => {
@@ -1166,6 +1196,20 @@
                 setLoading(false);
                 setPublicado(true);
             };
+
+            // Toggle component
+            const Toggle = ({ k }) => (
+                <button
+                    onClick={() => setToggle(k)}
+                    className={["flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all w-full text-left", toggles[k] ? "border-primary bg-primary/5" : "border-slate-100 bg-white hover:border-slate-200"].join(' ')}
+                >
+                    <span className={["material-symbols-outlined text-[20px]", toggles[k] ? "text-primary" : "text-slate-300"].join(' ')} style={toggles[k] ? {fontVariationSettings:"'FILL' 1"} : {}}>{toggleLabels[k].icon}</span>
+                    <span className={["text-sm font-semibold flex-1", toggles[k] ? "text-primary" : "text-slate-400"].join(' ')}>{toggleLabels[k].label}</span>
+                    <div className={["w-10 h-5 rounded-full transition-all relative flex-shrink-0", toggles[k] ? "bg-primary" : "bg-slate-200"].join(' ')}>
+                        <div className={["absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all", toggles[k] ? "left-[22px]" : "left-0.5"].join(' ')}></div>
+                    </div>
+                </button>
+            );
 
             if (publicado) {
                 return (
@@ -1185,7 +1229,7 @@
             }
 
             return (
-                <div className="flex min-h-screen">
+                <div className="flex min-h-screen bg-[#F7F7F9]">
                     <Sidebar version="collapsed" />
                     <div className="flex-1 flex flex-col">
                         <TopBar version="slim" />
@@ -1204,10 +1248,22 @@
                             ))}
                         </div>
 
-                        <main className="max-w-[900px] mx-auto w-full px-6 pb-16">
+                        {/* Preview banner */}
+                        <div className="max-w-[900px] mx-auto w-full px-6 mb-4">
+                            <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                <span className="material-symbols-outlined text-amber-500 text-[20px]" style={{fontVariationSettings:"'FILL' 1"}}>visibility</span>
+                                <div className="flex-1">
+                                    <p className="text-xs font-black text-amber-700 uppercase tracking-wider">Preview do anúncio</p>
+                                    <p className="text-xs text-amber-600">Revise e edite as informações antes de publicar. Clique em qualquer campo para alterar.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <main className="max-w-[900px] mx-auto w-full px-6 pb-16 space-y-4">
+
                             {/* Photo carousel */}
                             {allImgs.length > 0 && (
-                                <div className="mb-8">
+                                <div>
                                     <div className="relative bg-surface-container-lowest rounded-2xl overflow-hidden aspect-[16/9] mb-3">
                                         <img src={allImgs[activeImg]} className="w-full h-full object-contain" alt="Foto do veículo" />
                                         {allImgs.length > 1 && (
@@ -1235,80 +1291,85 @@
                             )}
 
                             {/* Titulo e preço */}
-                            <div className="bg-white rounded-2xl p-6 mb-4 shadow-sm border border-slate-100">
-                                <div className="flex items-start justify-between gap-4 mb-1">
-                                    {editando ? (
-                                        <input value={form.titulo} onChange={set('titulo')} className="text-2xl font-black text-primary flex-1 border-b-2 border-primary outline-none bg-transparent" />
-                                    ) : (
-                                        <h1 className="text-2xl font-black text-primary">{form.titulo || 'Veículo'}</h1>
-                                    )}
-                                    <button onClick={() => setEditando(!editando)} className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors flex-shrink-0 mt-1">
-                                        <span className="material-symbols-outlined text-[16px]">{editando ? 'check' : 'edit'}</span>
-                                        {editando ? 'Salvar' : 'Editar'}
-                                    </button>
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                <div className="flex items-start gap-4 mb-1">
+                                    <input
+                                        value={form.titulo}
+                                        onChange={set('titulo')}
+                                        className="text-xl font-black text-primary flex-1 border-b-2 border-dashed border-slate-200 focus:border-primary outline-none bg-transparent pb-1 transition-colors"
+                                    />
                                 </div>
-                                {vehicle && <p className="text-sm text-slate-500 mb-4">{vehicle.versao}</p>}
-                                <div className="flex items-center justify-between">
+                                {vehicle && <p className="text-sm text-slate-400 mb-4">{vehicle.versao}</p>}
+                                <div className="flex items-center justify-between flex-wrap gap-4">
                                     <div className="flex items-center gap-2">
                                         <span className="material-symbols-outlined text-[16px] text-slate-400" style={{fontVariationSettings:"'FILL' 1"}}>location_on</span>
-                                        <span className="text-sm text-slate-500">{form.cidade}</span>
+                                        <input value={form.cidade} onChange={set('cidade')} className="text-sm text-slate-500 border-b border-dashed border-slate-200 focus:border-primary outline-none bg-transparent" />
                                     </div>
                                     <div className="text-right">
-                                        <div className="flex items-center gap-2 justify-end mb-0.5">
+                                        <div className="flex items-center gap-2 justify-end mb-1">
                                             <span className="text-[10px] font-bold text-secondary uppercase tracking-wider bg-secondary/10 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                 <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>stars</span>
                                                 Valor sugerido
                                             </span>
                                         </div>
-                                        {editando ? (
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-lg font-black text-on-surface">R$</span>
-                                                <input value={form.preco} onChange={set('preco')} className="text-2xl font-black text-on-surface w-32 border-b-2 border-primary outline-none bg-transparent text-right" />
-                                            </div>
-                                        ) : (
-                                            <p className="text-2xl font-black text-on-surface">R$ {form.preco}</p>
-                                        )}
-                                        <p className="text-[11px] text-slate-400">Você pode ajustar o valor antes de publicar</p>
+                                        <div className="flex items-center gap-1 justify-end">
+                                            <span className="text-lg font-black text-on-surface">R$</span>
+                                            <input value={form.preco} onChange={set('preco')} className="text-2xl font-black text-on-surface w-36 border-b-2 border-dashed border-slate-200 focus:border-primary outline-none bg-transparent text-right" />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-0.5">Clique para editar o valor</p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Placa e dados */}
+                            {/* Dados do veículo */}
                             {vehicle && (
-                                <div className="bg-white rounded-2xl p-6 mb-4 shadow-sm border border-slate-100">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <span className="material-symbols-outlined text-[16px] text-secondary" style={{fontVariationSettings:"'FILL' 1"}}>id_card</span>
-                                        <span className="text-xs font-black text-secondary uppercase tracking-wider">Placa: {vehicle.placa}</span>
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                    <div className="flex items-center justify-between mb-5">
+                                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Dados do Veículo</h3>
+                                        {vehicle.placa && (
+                                            <span className="flex items-center gap-1.5 text-xs font-bold text-secondary bg-secondary/10 px-3 py-1 rounded-full">
+                                                <span className="material-symbols-outlined text-[14px]" style={{fontVariationSettings:"'FILL' 1"}}>id_card</span>
+                                                Placa {vehicle.placa} · Final {form.finalPlaca}
+                                            </span>
+                                        )}
                                     </div>
-                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Dados do Veículo</h3>
-                                    <div className="grid grid-cols-3 gap-y-5">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-5 gap-x-4">
                                         {[
-                                            ['Cidade', form.cidade, 'cidade'],
-                                            ['Ano', form.ano, 'ano'],
-                                            ['KM', form.km, 'km'],
-                                            ['Câmbio', form.cambio, 'cambio'],
-                                            ['Carroceria', form.carroceria, 'carroceria'],
-                                            ['Cor', form.cor, 'cor'],
-                                            ['Combustível', form.combustivel, 'combustivel'],
-                                            ['Portas', form.portas, 'portas'],
-                                            ['Blindado', form.blindado, 'blindado'],
-                                        ].map(([label, val, key]) => (
-                                            <div key={key}>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
-                                                {editando ? (
-                                                    <input value={val} onChange={set(key)} className="text-sm font-semibold text-on-surface border-b border-slate-300 outline-none bg-transparent w-full" />
-                                                ) : (
-                                                    <p className="text-sm font-semibold text-on-surface">{val}</p>
-                                                )}
+                                            ['Ano', 'ano', 'calendar_month'],
+                                            ['KM', 'km', 'speed'],
+                                            ['Câmbio', 'cambio', 'settings'],
+                                            ['Carroceria', 'carroceria', 'directions_car'],
+                                            ['Cor', 'cor', 'palette'],
+                                            ['Combustível', 'combustivel', 'local_gas_station'],
+                                            ['Portas', 'portas', 'sensor_door'],
+                                            ['Blindado', 'blindado', 'shield'],
+                                        ].map(([label, key, icon]) => (
+                                            <div key={key} className="flex items-start gap-2">
+                                                <span className="material-symbols-outlined text-[16px] text-slate-300 mt-0.5">{icon}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+                                                    <input value={form[key] || ''} onChange={set(key)} className="text-sm font-semibold text-on-surface border-b border-dashed border-slate-200 focus:border-primary outline-none bg-transparent w-full" />
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Itens */}
+                            {/* Características — toggles */}
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Características</h3>
+                                    <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Ative as que se aplicam</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {Object.keys(toggleLabels).map(k => <Toggle key={k} k={k} />)}
+                                </div>
+                            </div>
+
+                            {/* Itens do veículo */}
                             {vehicle && vehicle.itens && vehicle.itens.length > 0 && (
-                                <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-slate-100">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Itens do Veículo</h3>
                                     <div className="flex flex-wrap gap-2">
                                         {vehicle.itens.map((item, i) => (
@@ -1318,8 +1379,27 @@
                                 </div>
                             )}
 
+                            {/* Descrição */}
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Descrição do anúncio</h3>
+                                    <span className="flex items-center gap-1 text-[10px] text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-full">
+                                        <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>auto_awesome</span>
+                                        Gerado automaticamente
+                                    </span>
+                                </div>
+                                <textarea
+                                    value={form.descricao}
+                                    onChange={set('descricao')}
+                                    rows={5}
+                                    className="w-full text-sm text-slate-600 leading-relaxed border border-dashed border-slate-200 focus:border-primary rounded-xl p-4 outline-none bg-[#FAFAFA] focus:bg-white resize-none transition-all"
+                                    placeholder="Descreva o veículo para o comprador..."
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Edite o texto acima para personalizar sua descrição.</p>
+                            </div>
+
                             {/* Actions */}
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 pt-2">
                                 <button onClick={() => navigate('/placa')} className="h-12 px-6 border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 text-sm">
                                     <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                                     Voltar
