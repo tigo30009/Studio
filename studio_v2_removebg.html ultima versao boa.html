@@ -493,8 +493,6 @@
             const [processing, setProcessing] = React.useState(false);
             const [processedImgs, setProcessedImgs] = React.useState({});
             const [error, setError] = React.useState('');
-            const [apiKey, setApiKey] = React.useState(() => { try { return localStorage.getItem('removebg_apikey') || ''; } catch(e) { return ''; } });
-            const [showApiKeyInput, setShowApiKeyInput] = React.useState(false);
             const isDraggingSlider = React.useRef(false);
 
             // Use photos from upload screen via sessionStorage (set when navigating)
@@ -619,18 +617,8 @@
                 });
             };
 
-            const saveApiKey = (key) => {
-                setApiKey(key);
-                try { localStorage.setItem('removebg_apikey', key); } catch(e) {}
-            };
-
             const processPhoto = async () => {
                 if (!currentPhoto) return;
-                if (!apiKey.trim()) {
-                    setShowApiKeyInput(true);
-                    setError('Insira sua API Key do remove.bg para continuar.');
-                    return;
-                }
                 setProcessing(true);
                 setError('');
                 try {
@@ -645,21 +633,14 @@
 
                     const formData = new FormData();
                     formData.append('image', blob, currentPhoto.name || 'photo.jpg');
-
-
-                    const res = await fetch('https://studio-xefd.onrender.com/remove-bg', {
+                    const res = await fetch('http://localhost:3000/remove-bg', {
                         method: 'POST',
-
                         body: formData
                     });
-
-
-
                     if (!res.ok) {
-                        var errData = await res.json().catch(() => ({}));
-                        throw new Error((errData.errors && errData.errors[0] && errData.errors[0].title) || 'Erro ao processar imagem (status ' + res.status + ')');
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro ao processar imagem');
                     }
-
                     const resultBlob = await res.blob();
                     const carPngUrl = URL.createObjectURL(resultBlob);
                     // Compose with studio background if available
@@ -753,61 +734,6 @@
                                         </label>
                                     </div>
                                 </section>
-
-                                {/* API Key Input */}
-                                {showApiKeyInput && (
-                                    <div className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="material-symbols-outlined text-[18px] text-secondary">key</span>
-                                            <p className="text-sm font-bold text-on-surface">API Key — remove.bg</p>
-                                        </div>
-                                        <p className="text-xs text-slate-500 mb-3">
-                                            Crie sua chave gratuita em{' '}
-                                            <a href="https://www.remove.bg/api" target="_blank" className="text-primary underline font-medium">remove.bg/api</a>
-                                            {' '}(50 imagens/mês grátis)
-                                        </p>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="password"
-                                                value={apiKey}
-                                                onChange={e => saveApiKey(e.target.value)}
-                                                placeholder="Cole sua API key aqui"
-                                                className="flex-1 h-10 px-3 text-sm border border-outline-variant rounded-lg bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                                            />
-                                            <button
-                                                onClick={() => { setShowApiKeyInput(false); setError(''); }}
-                                                className="h-10 px-4 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 transition-colors"
-                                            >
-                                                Salvar
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* API Key badge when saved */}
-                                {!showApiKeyInput && apiKey && (
-                                    <div
-                                        onClick={() => setShowApiKeyInput(true)}
-                                        className="flex items-center justify-between px-3 py-2 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container transition-colors"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-[16px] text-green-600" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
-                                            <span className="text-xs font-medium text-slate-600">API Key configurada</span>
-                                        </div>
-                                        <span className="text-[10px] text-slate-400 font-mono">{apiKey.slice(0,6)}••••</span>
-                                    </div>
-                                )}
-
-                                {/* Configure key prompt when no key */}
-                                {!showApiKeyInput && !apiKey && (
-                                    <button
-                                        onClick={() => setShowApiKeyInput(true)}
-                                        className="w-full flex items-center justify-center gap-2 py-2 text-xs text-slate-500 hover:text-primary transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-[16px]">key</span>
-                                        Configurar API Key do remove.bg
-                                    </button>
-                                )}
 
                                 {/* Error */}
                                 {error && (
