@@ -1003,16 +1003,19 @@
                 if (placaFormatada.length < 7) { setErro('Placa inválida. Use o formato ABC1234 ou ABC1D23.'); return; }
                 setErro('');
                 setLoading(true);
-                await new Promise(r => setTimeout(r, 1500));
-                const dados = MOCK_VEHICLES[placaFormatada] || {
-                    marca: 'Veículo', modelo: 'Encontrado', versao: '1.0 Flex 4P Manual', ano: '2020/2020',
-                    km: '45.000', cambio: 'Manual', carroceria: 'Hatch', cor: 'Prata', combustivel: 'Flex',
-                    portas: '4', blindado: 'Não', cidade: 'São Paulo', estado: 'SP', preco: '59.900',
-                    itens: ['Ar condicionado', 'Vidros elétricos', 'Direção Elétrica']
-                };
-                sessionStorage.setItem('vehicleData', JSON.stringify({ ...dados, placa: placaFormatada }));
-                setLoading(false);
-                navigate('/anuncio');
+                try {
+                    const res = await fetch('/vehicle-data?placa=' + placaFormatada);
+                    const data = await res.json();
+                    if (!res.ok || data.status !== 'SUCCESS') {
+                        throw new Error(data.error || 'Veículo não encontrado para esta placa.');
+                    }
+                    sessionStorage.setItem('vehicleData', JSON.stringify(data.vehicle));
+                    navigate('/anuncio');
+                } catch (err) {
+                    setErro(err.message);
+                } finally {
+                    setLoading(false);
+                }
             };
 
             const handleInput = (e) => {
@@ -1317,6 +1320,11 @@
                                             <input value={form.preco} onChange={set('preco')} className="text-2xl font-black text-on-surface w-36 border-b-2 border-dashed border-slate-200 focus:border-primary outline-none bg-transparent text-right" />
                                         </div>
                                         <p className="text-[10px] text-slate-400 mt-0.5">Clique para editar o valor</p>
+                                        {vehicle && vehicle.precoMin && vehicle.precoMax && (
+                                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                                Faixa IWM: R$ {vehicle.precoMin} – R$ {vehicle.precoMax}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
