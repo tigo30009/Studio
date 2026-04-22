@@ -998,6 +998,15 @@
                 ? Object.values(processedImgs)
                 : photos.map(p => p.preview);
 
+            const MOCK_FALLBACK = {
+                marca: 'Honda', modelo: 'Civic', versao: '2.0 16V Flexone EX 4P CVT',
+                ano: '2019/2019', km: '65.000', cambio: 'CVT', carroceria: 'Sedã',
+                cor: 'Prata', combustivel: 'Flex', portas: '4', blindado: 'Não',
+                cidade: 'São Paulo', estado: 'SP', preco: '89.900',
+                precoMin: '82.000', precoMax: '96.000',
+                itens: ['Ar condicionado', 'Vidros elétricos', 'Alarme', 'Freio ABS', 'Rodas de liga leve', 'Bancos de couro', 'Direção Elétrica'],
+            };
+
             const handleBuscar = async () => {
                 const placaFormatada = placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
                 if (placaFormatada.length < 7) { setErro('Placa inválida. Use o formato ABC1234 ou ABC1D23.'); return; }
@@ -1006,13 +1015,19 @@
                 try {
                     const res = await fetch('/vehicle-data?placa=' + placaFormatada);
                     const data = await res.json();
-                    if (!res.ok || data.status !== 'SUCCESS') {
-                        throw new Error(data.error || 'Veículo não encontrado para esta placa.');
+                    if (res.ok && data.status === 'SUCCESS' && data.vehicle) {
+                        sessionStorage.setItem('vehicleData', JSON.stringify(data.vehicle));
+                    } else {
+                        // API falhou ou não retornou dados — usa mock com a placa informada
+                        console.warn('API indisponível, usando dados mockados. Motivo:', data.error || 'sem dados');
+                        sessionStorage.setItem('vehicleData', JSON.stringify({ ...MOCK_FALLBACK, placa: placaFormatada }));
                     }
-                    sessionStorage.setItem('vehicleData', JSON.stringify(data.vehicle));
                     navigate('/anuncio');
                 } catch (err) {
-                    setErro(err.message);
+                    // Erro de rede ou servidor — usa mock mesmo assim
+                    console.warn('Erro na chamada API, usando dados mockados:', err.message);
+                    sessionStorage.setItem('vehicleData', JSON.stringify({ ...MOCK_FALLBACK, placa: placaFormatada }));
+                    navigate('/anuncio');
                 } finally {
                     setLoading(false);
                 }
