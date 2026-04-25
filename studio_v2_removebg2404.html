@@ -96,22 +96,6 @@
         .sidebar-dark {
             background-color: #1a1b26;
         }
-        /* DS Webmotors Tokens */
-        :root {
-            --ds-bg-page: #F7F7F9;
-            --ds-bg-card: #FFFFFF;
-            --ds-text-primary: #43534;
-            --ds-text-secondary: #4A4B77;
-            --ds-text-disabled: #8B8C12;
-            --ds-text-emphasys: #E22446;
-            --ds-text-complementary: #5B588F;
-            --ds-border-default: #DCDDB8;
-            --ds-border-card: #F7F7F9;
-            --ds-neutral-high-medium: #BEBEBF;
-            --shadow-ds-level-1: 0 8px 8px rgba(106,105,119,0.08);
-            --shadow-ds-level-2: 0 8px 16px rgba(106,105,119,0.16);
-            --shadow-ds-level-3: 0 8px 24px rgba(106,105,119,0.24);
-        }
         .before-after-slider {
             position: relative;
             overflow: hidden;
@@ -1235,39 +1219,25 @@
             const Toggle = ({ k }) => (
                 <button
                     onClick={() => setToggle(k)}
-                    className={["flex items-center gap-3 px-4 py-3 rounded-[8px] border transition-all w-full text-left", toggles[k] ? "border-primary bg-primary/5" : "bg-white hover:border-[#BEBEBF]"].join(' ')}
-                    style={{borderColor: toggles[k] ? '#E22446' : '#DCDCE9'}}
+                    className={["flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all w-full text-left", toggles[k] ? "border-primary bg-primary/5" : "border-slate-100 bg-white hover:border-slate-200"].join(' ')}
                 >
-                    <span
-                        className="material-symbols-outlined text-[20px] transition-colors"
-                        style={{color: toggles[k] ? '#E22446' : '#BEBEBF', fontVariationSettings: toggles[k] ? "'FILL' 1" : "'FILL' 0"}}
-                    >{toggleLabels[k].icon}</span>
-                    <span
-                        className="text-[14px] font-semibold flex-1 transition-colors"
-                        style={{color: toggles[k] ? '#E22446' : '#4A4B77', lineHeight:'140%'}}
-                    >{toggleLabels[k].label}</span>
-                    {/* DS Switch: 44x24px */}
-                    <div
-                        className="relative flex-shrink-0 rounded-full transition-all"
-                        style={{width:44, height:24, backgroundColor: toggles[k] ? '#E22446' : '#BEBEBF'}}
-                    >
-                        <div
-                            className="absolute top-[2px] w-5 h-5 bg-white rounded-full shadow transition-all"
-                            style={{left: toggles[k] ? '22px' : '2px'}}
-                        ></div>
+                    <span className={["material-symbols-outlined text-[20px]", toggles[k] ? "text-primary" : "text-slate-300"].join(' ')} style={toggles[k] ? {fontVariationSettings:"'FILL' 1"} : {}}>{toggleLabels[k].icon}</span>
+                    <span className={["text-sm font-semibold flex-1", toggles[k] ? "text-primary" : "text-slate-400"].join(' ')}>{toggleLabels[k].label}</span>
+                    <div className={["w-10 h-5 rounded-full transition-all relative flex-shrink-0", toggles[k] ? "bg-primary" : "bg-slate-200"].join(' ')}>
+                        <div className={["absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all", toggles[k] ? "left-[22px]" : "left-0.5"].join(' ')}></div>
                     </div>
                 </button>
             );
 
             if (publicado) {
                 return (
-                    <div className="flex min-h-screen items-center justify-center" style={{backgroundColor:"var(--ds-bg-page)"}}>
+                    <div className="flex min-h-screen items-center justify-center bg-[#F7F7F9]">
                         <div className="text-center p-8">
                             <div className="w-20 h-20 rounded-full signature-gradient flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30">
                                 <span className="material-symbols-outlined text-white text-4xl" style={{fontVariationSettings:"'FILL' 1"}}>check_circle</span>
                             </div>
-                            <h2 className="text-[24px] font-bold mb-2" style={{color:"var(--ds-text-primary)",lineHeight:"120%"}}>Anúncio publicado!</h2>
-                            <p className="mb-8" style={{color:"var(--ds-text-secondary)",fontSize:16,lineHeight:"130%"}}>Seu anúncio foi enviado com sucesso e está em revisão.</p>
+                            <h2 className="text-2xl font-black text-on-surface mb-2">Anúncio publicado!</h2>
+                            <p className="text-slate-500 mb-8">Seu anúncio foi enviado com sucesso e está em revisão.</p>
                             <button onClick={() => navigate('/')} className="h-12 px-8 signature-gradient text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all">
                                 Novo anúncio
                             </button>
@@ -1277,7 +1247,7 @@
             }
 
             return (
-                <div className="flex min-h-screen" style={{backgroundColor:"var(--ds-bg-page)"}}>
+                <div className="flex min-h-screen bg-[#F7F7F9]">
                     <Sidebar version="collapsed" />
                     <div className="flex-1 flex flex-col">
                         <TopBar version="slim" />
@@ -1339,19 +1309,19 @@
                             )}
 
                             {/* Titulo e preço */}
-                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                                 <div className="flex items-start gap-4 mb-1">
                                     <input
                                         value={form.titulo}
                                         onChange={set('titulo')}
-                                        className="text-[20px] font-bold flex-1 border-b-2 border-dashed outline-none bg-transparent pb-1 transition-colors" style={{color:"var(--ds-text-emphasys)",borderColor:"var(--ds-border-default)",lineHeight:"130%"}}
+                                        className="text-xl font-black text-primary flex-1 border-b-2 border-dashed border-slate-200 focus:border-primary outline-none bg-transparent pb-1 transition-colors"
                                     />
                                 </div>
-                                {vehicle && <p className="text-[14px] mb-4" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>{vehicle.versao}</p>}
+                                {vehicle && <p className="text-sm text-slate-400 mb-4">{vehicle.versao}</p>}
                                 <div className="flex items-center justify-between flex-wrap gap-4">
                                     <div className="flex items-center gap-2">
                                         <span className="material-symbols-outlined text-[16px] text-slate-400" style={{fontVariationSettings:"'FILL' 1"}}>location_on</span>
-                                        <input value={form.cidade} onChange={set('cidade')} className="text-[14px] border-b border-dashed outline-none bg-transparent" style={{color:"var(--ds-text-secondary)",borderColor:"var(--ds-border-default)",lineHeight:"140%"}} />
+                                        <input value={form.cidade} onChange={set('cidade')} className="text-sm text-slate-500 border-b border-dashed border-slate-200 focus:border-primary outline-none bg-transparent" />
                                     </div>
                                     <div className="text-right">
                                         <div className="flex items-center gap-2 justify-end mb-1">
@@ -1362,9 +1332,9 @@
                                         </div>
                                         <div className="flex items-center gap-1 justify-end">
                                             <span className="text-lg font-black text-on-surface">R$</span>
-                                            <input value={form.preco} onChange={set('preco')} className="text-[24px] font-bold w-36 border-b-2 border-dashed outline-none bg-transparent text-right" style={{color:"var(--ds-text-primary)",borderColor:"var(--ds-border-default)",lineHeight:"120%"}} />
+                                            <input value={form.preco} onChange={set('preco')} className="text-2xl font-black text-on-surface w-36 border-b-2 border-dashed border-slate-200 focus:border-primary outline-none bg-transparent text-right" />
                                         </div>
-                                        <p className="text-[10px] mt-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>Clique para editar o valor</p>
+                                        <p className="text-[10px] text-slate-400 mt-0.5">Clique para editar o valor</p>
                                         {vehicle && vehicle.precoMin && vehicle.precoMax && (
                                             <p className="text-[10px] text-slate-400 mt-0.5">
                                                 Faixa IWM: R$ {vehicle.precoMin} – R$ {vehicle.precoMax}
@@ -1376,11 +1346,11 @@
 
                             {/* Dados do veículo */}
                             {vehicle && (
-                                <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                                     <div className="flex items-center justify-between mb-5">
-                                        <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Dados do Veículo</h3>
+                                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Dados do Veículo</h3>
                                         {vehicle.placa && (
-                                            <span className="flex items-center gap-1.5 text-[12px] font-semibold px-3 rounded-full" style={{color:"var(--ds-text-complementary)",backgroundColor:"rgba(91,88,143,0.1)",height:24,lineHeight:"130%"}}>
+                                            <span className="flex items-center gap-1.5 text-xs font-bold text-secondary bg-secondary/10 px-3 py-1 rounded-full">
                                                 <span className="material-symbols-outlined text-[14px]" style={{fontVariationSettings:"'FILL' 1"}}>id_card</span>
                                                 Placa {vehicle.placa} · Final {form.finalPlaca}
                                             </span>
@@ -1398,10 +1368,10 @@
                                             ['Blindado', 'blindado', 'shield'],
                                         ].map(([label, key, icon]) => (
                                             <div key={key} className="flex items-start gap-2">
-                                                <span className="material-symbols-outlined text-[16px] mt-0.5" style={{color:"#BEBEBF"}}>{icon}</span>
+                                                <span className="material-symbols-outlined text-[16px] text-slate-300 mt-0.5">{icon}</span>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>{label}</p>
-                                                    <input value={form[key] || ''} onChange={set(key)} className="text-[14px] font-semibold border-b border-dashed outline-none bg-transparent w-full" style={{color:"var(--ds-text-primary)",borderColor:"var(--ds-border-default)",lineHeight:"140%"}} />
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+                                                    <input value={form[key] || ''} onChange={set(key)} className="text-sm font-semibold text-on-surface border-b border-dashed border-slate-200 focus:border-primary outline-none bg-transparent w-full" />
                                                 </div>
                                             </div>
                                         ))}
@@ -1410,10 +1380,10 @@
                             )}
 
                             {/* Características — toggles */}
-                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Características</h3>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{backgroundColor:"#F7F7F9",color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Ative as que se aplicam</span>
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Características</h3>
+                                    <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Ative as que se aplicam</span>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {Object.keys(toggleLabels).map(k => <Toggle key={k} k={k} />)}
@@ -1422,21 +1392,21 @@
 
                             {/* Itens do veículo */}
                             {vehicle && vehicle.itens && vehicle.itens.length > 0 && (
-                                <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-4" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Itens do Veículo</h3>
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Itens do Veículo</h3>
                                     <div className="flex flex-wrap gap-2">
                                         {vehicle.itens.map((item, i) => (
-                                            <span key={i} className="px-4 rounded-full text-[14px] font-semibold border transition-colors" style={{height:32,display:"inline-flex",alignItems:"center",backgroundColor:"#F5F2FF",color:"var(--ds-text-primary)",borderColor:"#DCDCE9",lineHeight:"140%"}}>{item}</span>
+                                            <span key={i} className="px-3 py-1.5 bg-surface-container-low rounded-full text-xs font-medium text-on-surface border border-outline-variant/30">{item}</span>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
                             {/* Descrição */}
-                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Descrição do anúncio</h3>
-                                    <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{color:"var(--ds-text-complementary)",backgroundColor:"rgba(91,88,143,0.1)",lineHeight:"140%"}}>
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Descrição do anúncio</h3>
+                                    <span className="flex items-center gap-1 text-[10px] text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-full">
                                         <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>auto_awesome</span>
                                         Gerado automaticamente
                                     </span>
@@ -1445,22 +1415,22 @@
                                     value={form.descricao}
                                     onChange={set('descricao')}
                                     rows={5}
-                                    className="w-full text-[14px] rounded-[8px] p-4 outline-none resize-none transition-all" style={{color:"var(--ds-text-secondary)",lineHeight:"140%",border:"1px dashed #DCDCE9",backgroundColor:"var(--ds-bg-page)"}}
+                                    className="w-full text-sm text-slate-600 leading-relaxed border border-dashed border-slate-200 focus:border-primary rounded-xl p-4 outline-none bg-[#FAFAFA] focus:bg-white resize-none transition-all"
                                     placeholder="Descreva o veículo para o comprador..."
                                 />
-                                <p className="text-[10px] mt-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>Edite o texto acima para personalizar sua descrição.</p>
+                                <p className="text-[10px] text-slate-400 mt-1">Edite o texto acima para personalizar sua descrição.</p>
                             </div>
 
                             {/* Actions */}
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => navigate('/placa')} className="h-12 px-6 border-2 font-semibold rounded-[8px] hover:bg-gray-50 transition-all flex items-center gap-2 text-[14px]" style={{borderColor:"var(--ds-border-default)",color:"var(--ds-text-secondary)",lineHeight:"130%"}}>
+                                <button onClick={() => navigate('/placa')} className="h-12 px-6 border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 text-sm">
                                     <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                                     Voltar
                                 </button>
                                 <button
                                     onClick={handlePublicar}
                                     disabled={loading}
-                                    className={["flex-1 h-12 font-semibold rounded-[8px] text-[16px] transition-all flex items-center justify-center gap-2", loading ? "bg-[#BEBEBF] text-white cursor-not-allowed" : "signature-gradient text-white cursor-pointer"].join(' ')}
+                                    className={["flex-1 h-12 font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2", loading ? "bg-slate-300 text-white cursor-not-allowed" : "signature-gradient text-white shadow-lg hover:shadow-xl active:scale-[0.98] cursor-pointer"].join(' ')}
                                 >
                                     {loading ? (
                                         <React.Fragment>
