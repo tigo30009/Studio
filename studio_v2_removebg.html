@@ -112,6 +112,8 @@
             --shadow-ds-level-2: 0 8px 16px rgba(106,105,119,0.16);
             --shadow-ds-level-3: 0 8px 24px rgba(106,105,119,0.24);
         }
+        .scrollbar-none { scrollbar-width: none; }
+        .scrollbar-none::-webkit-scrollbar { display: none; }
         .before-after-slider {
             position: relative;
             overflow: hidden;
@@ -357,26 +359,26 @@
 
             return (
                 <div className="flex flex-1">
-                    <Sidebar />
+                    <Sidebar className="hidden md:flex" />
                     <div className="flex-1 flex flex-col min-w-0">
                         <TopBar />
-                        <main className="flex-1 overflow-y-auto p-8 max-w-[1200px] mx-auto w-full">
+                        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 max-w-[1200px] mx-auto w-full">
 
                             {/* Stepper */}
                             <div className="flex items-center justify-center mb-16 gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-primary/20">1</div>
-                                    <span className="text-sm font-bold text-on-surface uppercase tracking-wider">UPLOAD</span>
+                                    <span className="hidden sm:inline text-sm font-bold text-on-surface uppercase tracking-wider">UPLOAD</span>
                                 </div>
                                 <div className="w-16 h-[2px] bg-outline-variant/30"></div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface text-xs font-bold">2</div>
-                                    <span className="text-sm font-bold text-outline uppercase tracking-wider">ESTÚDIO</span>
+                                    <span className="hidden sm:inline text-sm font-bold text-outline uppercase tracking-wider">ESTÚDIO</span>
                                 </div>
                                 <div className="w-16 h-[2px] bg-outline-variant/30"></div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface text-xs font-bold">3</div>
-                                    <span className="text-sm font-bold text-outline uppercase tracking-wider">DOWNLOAD</span>
+                                    <span className="hidden sm:inline text-sm font-bold text-outline uppercase tracking-wider">DOWNLOAD</span>
                                 </div>
                             </div>
 
@@ -388,7 +390,7 @@
                                     onDragLeave={handleDragLeave}
                                     onClick={() => !isFull && fileInputRef.current.click()}
                                     className={[
-                                        "bg-surface-container-lowest rounded-xl p-12 flex flex-col items-center justify-center border-2 border-dashed transition-all duration-300 shadow-[0_8px_32px_-4px_rgba(106,105,119,0.05)]",
+                                        "bg-surface-container-lowest rounded-xl p-6 md:p-12 flex flex-col items-center justify-center border-2 border-dashed transition-all duration-300 shadow-[0_8px_32px_-4px_rgba(106,105,119,0.05)]",
                                         isFull ? "border-outline-variant/30 opacity-60 cursor-not-allowed" :
                                         isDragging ? "border-primary bg-primary-fixed/30 cursor-copy scale-[1.01]" :
                                         "border-outline-variant/50 hover:border-primary/40 cursor-pointer group"
@@ -400,7 +402,7 @@
                                             {isDragging ? "download" : "cloud_upload"}
                                         </span>
                                     </div>
-                                    <h2 className="text-2xl font-bold mb-2 text-on-surface">
+                                    <h2 className="text-[20px] md:text-2xl font-bold mb-2 text-on-surface text-center">
                                         {isDragging ? "Solte as fotos aqui" : "Adicionar fotos do veículo"}
                                     </h2>
                                     <p className="text-slate-500 mb-6 max-w-md text-center leading-relaxed">
@@ -457,7 +459,7 @@
                                             Remover todas
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                                         {photos.map((photo) => (
                                             <div key={photo.id} className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm group">
                                                 <div className="relative aspect-[4/3] overflow-hidden">
@@ -481,7 +483,7 @@
                                 </section>
                             )}
 
-                            <div className="mt-16 flex justify-end">
+                            <div className="mt-8 md:mt-16 flex justify-end">
                                 <button
                                     onClick={() => { if (photos.length > 0) { sessionStorage.setItem('studioPhotos', JSON.stringify(photos)); navigate('/studio'); } }}
                                     disabled={photos.length === 0}
@@ -690,7 +692,7 @@
 
             return (
                 <div className="flex min-h-screen">
-                    <Sidebar version="collapsed" />
+                    <Sidebar version="collapsed" className="hidden md:flex" />
                     <div className="flex-1 flex flex-col">
                         <TopBar version="slim" />
                         {/* Stepper */}
@@ -699,23 +701,23 @@
                                 <div className="w-7 h-7 rounded-full signature-gradient flex items-center justify-center text-white shadow-sm">
                                     <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span>
                                 </div>
-                                <span className="text-xs font-bold text-primary uppercase tracking-wider">Upload</span>
+                                <span className="hidden sm:inline text-xs font-bold text-primary uppercase tracking-wider">Upload</span>
                             </div>
                             <div className="w-12 h-[2px] bg-primary/40"></div>
                             <div className="flex items-center gap-2">
                                 <div className="w-7 h-7 rounded-full signature-gradient flex items-center justify-center text-white text-xs font-bold shadow-sm">2</div>
-                                <span className="text-xs font-bold text-on-surface uppercase tracking-wider">Estúdio</span>
+                                <span className="hidden sm:inline text-xs font-bold text-on-surface uppercase tracking-wider">Estúdio</span>
                             </div>
                             <div className="w-12 h-[2px] bg-outline-variant/30"></div>
                             <div className="flex items-center gap-2">
                                 <div className="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface text-xs font-bold">3</div>
-                                <span className="text-xs font-bold text-outline uppercase tracking-wider">Anúncio</span>
+                                <span className="hidden sm:inline text-xs font-bold text-outline uppercase tracking-wider">Anúncio</span>
                             </div>
                         </div>
-                        <main className="max-w-[1440px] mx-auto px-8 pb-10 grid grid-cols-12 gap-10">
+                        <main className="max-w-[1440px] mx-auto px-4 md:px-8 pb-10 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10">
 
                             {/* Left Controls */}
-                            <aside className="col-span-4 flex flex-col space-y-8">
+                            <aside className="md:col-span-4 flex flex-col space-y-6 md:space-y-8">
                                 <section>
                                     <h2 className="text-base font-semibold uppercase tracking-wider text-on-surface mb-6">Fundos de Estúdio</h2>
                                     <div className="grid grid-cols-2 gap-4">
@@ -1057,7 +1059,7 @@
 
             return (
                 <div className="flex min-h-screen">
-                    <Sidebar version="collapsed" />
+                    <Sidebar version="collapsed" className="hidden md:flex" />
                     <div className="flex-1 flex flex-col">
                         <TopBar version="slim" />
                         {/* Stepper */}
@@ -1066,7 +1068,7 @@
                                 <div className="w-7 h-7 rounded-full signature-gradient flex items-center justify-center text-white shadow-sm">
                                     <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span>
                                 </div>
-                                <span className="text-xs font-bold text-primary uppercase tracking-wider">Upload</span>
+                                <span className="hidden sm:inline text-xs font-bold text-primary uppercase tracking-wider">Upload</span>
                             </div>
                             <div className="w-12 h-[2px] bg-primary/40"></div>
                             <div className="flex items-center gap-2">
@@ -1081,8 +1083,8 @@
                                 <span className="text-xs font-bold text-on-surface uppercase tracking-wider">Anúncio</span>
                             </div>
                         </div>
-                        <main className="flex-1 flex items-start justify-center px-4 pb-16 pt-4">
-                            <div className="w-full max-w-lg">
+                        <main className="flex-1 flex items-start justify-center px-4 pb-16 pt-4 md:pt-8">
+                            <div className="w-full max-w-lg px-0">
                                 {/* Photo carousel preview */}
                                 {previewImgs.length > 0 && (
                                     <div className="mb-8 bg-surface-container-low rounded-2xl overflow-hidden aspect-[16/9] relative">
@@ -1278,7 +1280,7 @@
 
             return (
                 <div className="flex min-h-screen" style={{backgroundColor:"var(--ds-bg-page)"}}>
-                    <Sidebar version="collapsed" />
+                    <Sidebar version="collapsed" className="hidden md:flex" />
                     <div className="flex-1 flex flex-col">
                         <TopBar version="slim" />
                         {/* Stepper */}
@@ -1290,14 +1292,14 @@
                                         <div className="w-7 h-7 rounded-full signature-gradient flex items-center justify-center text-white shadow-sm">
                                             {i < 2 ? <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span> : <span className="text-xs font-bold">3</span>}
                                         </div>
-                                        <span className="text-xs font-bold text-primary uppercase tracking-wider">{s}</span>
+                                        <span className="hidden sm:inline text-xs font-bold text-primary uppercase tracking-wider">{s}</span>
                                     </div>
                                 </React.Fragment>
                             ))}
                         </div>
 
                         {/* Preview banner */}
-                        <div className="max-w-[900px] mx-auto w-full px-6 mb-4">
+                        <div className="max-w-[900px] mx-auto w-full px-4 md:px-6 mb-4">
                             <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
                                 <span className="material-symbols-outlined text-amber-500 text-[20px]" style={{fontVariationSettings:"'FILL' 1"}}>visibility</span>
                                 <div className="flex-1">
@@ -1307,7 +1309,7 @@
                             </div>
                         </div>
 
-                        <main className="max-w-[900px] mx-auto w-full px-6 pb-16 space-y-4">
+                        <main className="max-w-[900px] mx-auto w-full px-4 md:px-6 pb-16 space-y-4">
 
                             {/* Photo carousel */}
                             {allImgs.length > 0 && (
@@ -1327,7 +1329,7 @@
                                         )}
                                     </div>
                                     {allImgs.length > 1 && (
-                                        <div className="flex gap-2 overflow-x-auto pb-1">
+                                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                                             {allImgs.map((img, i) => (
                                                 <div key={i} onClick={() => setActiveImg(i)} className={["flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden cursor-pointer border-2 transition-all", i === activeImg ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"].join(' ')}>
                                                     <img src={img} className="w-full h-full object-cover" alt={"Foto " + (i+1)} />
@@ -1340,7 +1342,7 @@
 
                             {/* Titulo e preço */}
                             <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                <div className="flex items-start gap-4 mb-1">
+                                <div className="flex items-start gap-4 mb-1 flex-wrap">
                                     <input
                                         value={form.titulo}
                                         onChange={set('titulo')}
@@ -1348,7 +1350,7 @@
                                     />
                                 </div>
                                 {vehicle && <p className="text-[14px] mb-4" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>{vehicle.versao}</p>}
-                                <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                     <div className="flex items-center gap-2">
                                         <span className="material-symbols-outlined text-[16px] text-slate-400" style={{fontVariationSettings:"'FILL' 1"}}>location_on</span>
                                         <input value={form.cidade} onChange={set('cidade')} className="text-[14px] border-b border-dashed outline-none bg-transparent" style={{color:"var(--ds-text-secondary)",borderColor:"var(--ds-border-default)",lineHeight:"140%"}} />
@@ -1386,7 +1388,7 @@
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-5 gap-x-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4">
                                         {[
                                             ['Ano', 'ano', 'calendar_month'],
                                             ['KM', 'km', 'speed'],
@@ -1415,7 +1417,7 @@
                                     <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Características</h3>
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{backgroundColor:"#F7F7F9",color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Ative as que se aplicam</span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     {Object.keys(toggleLabels).map(k => <Toggle key={k} k={k} />)}
                                 </div>
                             </div>
@@ -1452,8 +1454,8 @@
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-3 pt-2">
-                                <button onClick={() => navigate('/placa')} className="h-12 px-6 border-2 font-semibold rounded-[8px] hover:bg-gray-50 transition-all flex items-center gap-2 text-[14px]" style={{borderColor:"var(--ds-border-default)",color:"var(--ds-text-secondary)",lineHeight:"130%"}}>
+                            <div className="flex flex-col-reverse md:flex-row gap-3 pt-2">
+                                <button onClick={() => navigate('/placa')} className="h-12 px-6 border-2 font-semibold rounded-[8px] hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[14px] md:w-auto w-full" style={{borderColor:"var(--ds-border-default)",color:"var(--ds-text-secondary)",lineHeight:"130%"}}>
                                     <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                                     Voltar
                                 </button>
