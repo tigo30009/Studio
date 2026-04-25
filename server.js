@@ -119,24 +119,43 @@ app.get('/vehicle-data', async (req, res) => {
     console.log('IWM request URL:', fullUrl);
     console.log('IWM token (primeiros 20 chars):', accessToken.substring(0, 20));
     console.log('IWM client_key:', clientKey);
+    console.log('Chamando API de precos...');
 
-    const precosRes = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'client_key':    clientKey,
-        'dimensoes':     'marca,modelo,versao,uf,cambio,carroceria,combustivel,blindado,ano_modelo,ano_fabricacao',
-        'metricas':      'vl_preco_wm,vl_preco_min_wm,vl_preco_max_wm,vl_iwm',
-      },
-    });
+    // Timeout de 10 segundos
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+      console.error('IWM preco timeout — chamada abortada após 10s');
+    }, 10000);
+
+    let precosRes;
+    try {
+      precosRes = await fetch(fullUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'client_key':    clientKey,
+          'dimensoes':     'marca,modelo,versao,uf,cambio,carroceria,combustivel,blindado,ano_modelo,ano_fabricacao',
+          'metricas':      'vl_preco_wm,vl_preco_min_wm,vl_preco_max_wm,vl_iwm',
+        },
+      });
+      clearTimeout(timeout);
+      console.log('IWM preco status:', precosRes.status);
+    } catch (fetchErr) {
+      clearTimeout(timeout);
+      console.error('IWM preco fetch error:', fetchErr.message);
+      return res.status(502).json({ error: 'Timeout ou erro de conexão com a API IWM.' });
+    }
 
     if (!precosRes.ok) {
       const errText = await precosRes.text();
-      console.error('IWM preco error:', errText);
+      console.error('IWM preco error body:', errText);
       return res.status(502).json({ error: 'Erro ao consultar Bureau de Preços.' });
     }
 
     const precosData = await precosRes.json();
+    console.log('IWM preco data:', JSON.stringify(precosData).substring(0, 300));
 
     if (precosData.status !== 'SUCCESS' || !precosData.records || precosData.records.length === 0) {
       return res.status(404).json({ error: 'Veículo não encontrado para esta placa.' });
