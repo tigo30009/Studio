@@ -562,110 +562,58 @@
             // Compose car PNG over studio background using Canvas
             const composeWithBackground = (carPngUrl, bgImg) => {
                 return new Promise((resolve) => {
-                    const W = 1280, H = 720;
                     const canvas = document.createElement('canvas');
-                    canvas.width = W; canvas.height = H;
+                    canvas.width = 1280;
+                    canvas.height = 720;
                     const ctx = canvas.getContext('2d');
 
                     const bg = new Image();
                     bg.crossOrigin = 'anonymous';
                     bg.onload = () => {
-                        // Draw background
-                        ctx.drawImage(bg, 0, 0, W, H);
+                        ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 
                         const car = new Image();
                         car.onload = () => {
-                            // --- 1. SCALE: fit car to ~78% width, max 46% height ---
-                            var maxW = W * 0.78;
-                            var maxH = H * 0.46;
-                            var scale = Math.min(maxW / car.width, maxH / car.height);
+                            // Max area the car can occupy: 88% width, 70% height
+                            var maxW = canvas.width * 0.88;
+                            var maxH = canvas.height * 0.70;
+
+                            // Scale to fit within max area preserving aspect ratio
+                            var scaleW = maxW / car.width;
+                            var scaleH = maxH / car.height;
+                            var scale = Math.min(scaleW, scaleH);
+
                             var carW = car.width * scale;
                             var carH = car.height * scale;
 
-                            // --- 2. POSITION: center on circular platform ---
-                            // Platform center X is slightly right of canvas center
-                            var platformCX = W * 0.52;
-                            // Floor contact Y: platform surface sits at ~76% of H
-                            var floorY = H * 0.76;
-                            var carX = platformCX - carW / 2;
+                            // Center horizontally
+                            var carX = (canvas.width - carW) / 2;
+
+                            // Floor line sits at ~68% of canvas height
+                            var floorY = canvas.height * 0.72;
                             var carY = floorY - carH;
 
-                            // --- 3. AMBIENT OCCLUSION SHADOW (soft ellipse under chassis) ---
+                            // Reflection — subtle, fades out downward
+                            var reflectH = carH * 0.35;
                             ctx.save();
-                            var aoCX = platformCX;
-                            var aoCY = floorY - carH * 0.04;
-                            var aoRX = carW * 0.44;
-                            var aoRY = carH * 0.08;
-                            var aoGrad = ctx.createRadialGradient(aoCX, aoCY, 0, aoCX, aoCY, aoRX);
-                            aoGrad.addColorStop(0,   'rgba(0,0,0,0.38)');
-                            aoGrad.addColorStop(0.55, 'rgba(0,0,0,0.14)');
-                            aoGrad.addColorStop(1,   'rgba(0,0,0,0)');
-                            ctx.fillStyle = aoGrad;
-                            ctx.beginPath();
-                            ctx.ellipse(aoCX, aoCY, aoRX, aoRY, 0, 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.globalAlpha = 0.15;
+                            ctx.translate(carX, floorY);
+                            ctx.scale(1, -1);
+                            // clip reflection to a fixed height so it doesn't go too far
+                            ctx.rect(0, 0, carW, reflectH);
+                            ctx.clip();
+                            ctx.drawImage(car, 0, 0, carW, carH);
                             ctx.restore();
 
-                            // --- 4. CONTACT SHADOWS (4 tires) ---
-                            ctx.save();
-                            var tireY = floorY - 2;
-                            var tireRX = carW * 0.072;
-                            var tireRY = carH * 0.028;
-                            var tireOffsets = [0.15, 0.35, 0.62, 0.82]; // relative X positions
-                            tireOffsets.forEach(function(t) {
-                                var tx = carX + carW * t;
-                                var tGrad = ctx.createRadialGradient(tx, tireY, 0, tx, tireY, tireRX);
-                                tGrad.addColorStop(0,   'rgba(0,0,0,0.55)');
-                                tGrad.addColorStop(0.6, 'rgba(0,0,0,0.18)');
-                                tGrad.addColorStop(1,   'rgba(0,0,0,0)');
-                                ctx.fillStyle = tGrad;
-                                ctx.beginPath();
-                                ctx.ellipse(tx, tireY, tireRX, tireRY, 0, 0, Math.PI * 2);
-                                ctx.fill();
-                            });
-                            ctx.restore();
-
-                            // --- 5. BRIGHTNESS / CONTRAST matching (studio is bright & diffuse) ---
-                            // Draw car to an offscreen canvas and apply filter
-                            var offCanvas = document.createElement('canvas');
-                            offCanvas.width = carW; offCanvas.height = carH;
-                            var offCtx = offCanvas.getContext('2d');
-                            // Slightly brighten and boost contrast to match studio whites
-                            offCtx.filter = 'brightness(1.06) contrast(1.04) saturate(0.96)';
-                            offCtx.drawImage(car, 0, 0, carW, carH);
-                            offCtx.filter = 'none';
-
-                            // --- 6. EDGE BLENDING (very subtle feather) ---
-                            // Draw car with composite trick: draw slightly larger blurred for soft edges
-                            ctx.save();
-                            ctx.globalAlpha = 0.18;
-                            ctx.filter = 'blur(3px)';
-                            ctx.drawImage(offCanvas, carX - 2, carY - 2, carW + 4, carH + 4);
-                            ctx.restore();
-
-                            // --- 7. FINAL CAR DRAW ---
-                            ctx.save();
+                            // Draw car on top
                             ctx.globalAlpha = 1;
-                            ctx.filter = 'none';
-                            ctx.drawImage(offCanvas, carX, carY, carW, carH);
-                            ctx.restore();
+                            ctx.drawImage(car, carX, carY, carW, carH);
 
-                            resolve(canvas.toDataURL('image/jpeg', 0.93));
+                            resolve(canvas.toDataURL('image/png'));
                         };
                         car.src = carPngUrl;
                     };
                     bg.src = bgImg;
-                    bg.onerror = () => {
-                        // fallback: just draw car on white bg
-                        ctx.fillStyle = '#f0f0f0';
-                        ctx.fillRect(0, 0, W, H);
-                        const car2 = new Image();
-                        car2.onload = () => {
-                            ctx.drawImage(car2, W*0.1, H*0.2, W*0.8, H*0.6);
-                            resolve(canvas.toDataURL('image/jpeg', 0.93));
-                        };
-                        car2.src = carPngUrl;
-                    };
                 });
             };
 
