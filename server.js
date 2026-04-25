@@ -109,23 +109,24 @@ app.get('/vehicle-data', async (req, res) => {
     const anoRef = ontem.getFullYear();
     const mesRef = String(ontem.getMonth() + 1).padStart(2, '0');
 
-    // Build URL as plain string — no encoding
+    // Query params — filtros de busca
     const fullUrl = 'https://iwm.webmotors.com.br/api/v2/preco'
       + '?nm_placa='       + placa.toUpperCase()
       + '&ano_referencia=' + anoRef
       + '&mes_referencia=' + mesRef
-      + '&tipo_veiculo=CARRO'
-      + '&client_key='     + clientKey
-      + '&dimensoes=marca,modelo,versao,uf,cambio,carroceria,combustivel,blindado,ano_modelo,ano_fabricacao'
-      + '&metricas=vl_preco_wm,vl_preco_min_wm,vl_preco_max_wm,vl_iwm';
+      + '&tipo_veiculo=CARRO';
 
     console.log('IWM request URL:', fullUrl);
+    console.log('IWM token (primeiros 20 chars):', accessToken.substring(0, 20));
+    console.log('IWM client_key:', clientKey);
 
     const precosRes = await fetch(fullUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'client_key':    clientKey,
+        'dimensoes':     'marca,modelo,versao,uf,cambio,carroceria,combustivel,blindado,ano_modelo,ano_fabricacao',
+        'metricas':      'vl_preco_wm,vl_preco_min_wm,vl_preco_max_wm,vl_iwm',
       },
     });
 
