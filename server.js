@@ -66,14 +66,9 @@ app.post('/remove-bg', upload.single('image'), async (req, res) => {
 app.post('/bytedance-bg', upload.single('image'), async (req, res) => {
   try {
     const apiKey = process.env.ARK_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'ARK_API_KEY não configurada no servidor.' });
-    }
-    if (!req.file) {
-      return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
-    }
+    if (!apiKey) return res.status(500).json({ error: 'ARK_API_KEY não configurada no servidor.' });
+    if (!req.file) return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
 
-    // Convert buffer to base64 data URL for Bytedance API
     const base64 = req.file.buffer.toString('base64');
     const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
 
@@ -91,24 +86,39 @@ app.post('/bytedance-bg', upload.single('image'), async (req, res) => {
 
     const response = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/images/generations', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      console.error('Bytedance error:', err);
       return res.status(response.status).json({ error: err.message || 'Erro na API Bytedance' });
     }
 
     const data = await response.json();
     res.json(data);
-
   } catch (err) {
     console.error('bytedance-bg error:', err);
+    res.status(500).json({ error: 'Erro interno: ' + err.message });
+  }
+});
+
+// ─── Download proxy (avoids CORS for external image URLs) ────────────────────
+app.get('/download-proxy', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'Parâmetro "url" é obrigatório.' });
+
+    const response = await fetch(url);
+    if (!response.ok) return res.status(502).json({ error: 'Não foi possível baixar a imagem.' });
+
+    const buffer = await response.buffer();
+    const contentType = response.headers.get('content-type') || 'image/png';
+    res.set('Content-Type', contentType);
+    res.set('Content-Disposition', 'attachment');
+    res.send(buffer);
+  } catch (err) {
+    console.error('download-proxy error:', err);
     res.status(500).json({ error: 'Erro interno: ' + err.message });
   }
 });
