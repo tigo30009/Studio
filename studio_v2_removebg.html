@@ -764,6 +764,8 @@
                 }
                 setProcessingAll(false);
                 setProcessingAllProgress({ current: 0, total: 0 });
+                setActivePhoto(0);
+                setSliderPos(50);
             };
 
             const filmstripPhotos = photos.length > 0 ? photos : [
@@ -946,13 +948,28 @@
                                     )}
                                     {Object.keys(processedImgs).length > 1 && (
                                         <button
-                                            onClick={() => {
-                                                Object.entries(processedImgs).forEach(([i, url]) => {
-                                                    const a = document.createElement('a');
-                                                    a.href = url;
-                                                    a.download = 'foto_sem_fundo_' + (parseInt(i)+1) + '.png';
-                                                    a.click();
-                                                });
+                                            onClick={async () => {
+                                                const entries = Object.entries(processedImgs);
+                                                for (var idx = 0; idx < entries.length; idx++) {
+                                                    const [i, url] = entries[idx];
+                                                    try {
+                                                        // Fetch the image as blob to force download (works for both blob: and https: URLs)
+                                                        const resp = await fetch(url);
+                                                        const blob = await resp.blob();
+                                                        const blobUrl = URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = blobUrl;
+                                                        a.download = 'foto_processada_' + (parseInt(i)+1) + '.png';
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        document.body.removeChild(a);
+                                                        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                                                        // Small delay between downloads so browser doesn't block them
+                                                        await new Promise(r => setTimeout(r, 400));
+                                                    } catch(e) {
+                                                        console.error('Erro ao baixar foto ' + (parseInt(i)+1), e);
+                                                    }
+                                                }
                                             }}
                                             className="w-full h-11 bg-[#2F2F32] text-white font-bold rounded-lg hover:bg-[#1a1a1a] transition-all flex items-center justify-center space-x-2"
                                         >
