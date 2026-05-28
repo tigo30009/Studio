@@ -522,7 +522,7 @@
 
             const templates = [
                 { id: 0, name: "Infinity White", uses: "3.2k USOS", bg: "#f0f0f0", studioImg: STUDIO_TEMPLATE, img: STUDIO_TEMPLATE },
-                { id: 1, name: "Bytedance", uses: "1.8k USOS", bg: "#8a8a8a", studioImg: null, isBytedance: true, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPqX9l8rCgEaJNsDcIVqX7j8vU_nUeqC0g08g69aE4J317qWGWnVyj0MjR9-zGzT8OvfsvTttGK_A4_rc3biQiQPIwjXpZPw9dNNlZZZJC9ykD7CJ6PSTI_-A-x6gfWo2Wa1J2bJ3WT6OI2RkirG_ToGvLn8nTAHliKEc6oeqGYqr5WDQPl8yS0plz7-wdWXWPUNOKBsArcUifeXK3dX_AtFTA83rqq4ibGC1rmZpcLGs550xMxmsDzGuMPpC0eEPh029_XV6lbJg" },
+                { id: 1, name: "Raw Concrete", uses: "1.8k USOS", bg: "#8a8a8a", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPqX9l8rCgEaJNsDcIVqX7j8vU_nUeqC0g08g69aE4J317qWGWnVyj0MjR9-zGzT8OvfsvTttGK_A4_rc3biQiQPIwjXpZPw9dNNlZZZJC9ykD7CJ6PSTI_-A-x6gfWo2Wa1J2bJ3WT6OI2RkirG_ToGvLn8nTAHliKEc6oeqGYqr5WDQPl8yS0plz7-wdWXWPUNOKBsArcUifeXK3dX_AtFTA83rqq4ibGC1rmZpcLGs550xMxmsDzGuMPpC0eEPh029_XV6lbJg" },
                 { id: 2, name: "Midnight Onyx", uses: "942 USOS", bg: "#1a1a2e", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGdi8qIED4qmgJH0rcg_FQaJ4xwMiCRh9gABhxqZECFtn_7Rw3Ic9IskgPTlzcv0vBBD9LtbqqQAvDqsUNbZ7mcoy9m3Mr-YLY10312_UTXNq0F1WFjL72d6Z8sXmHp-WN3N9a7rbRzCgINx63QOiOYZcCFV9A5btemaMbA7b7jEzSe6S5kEnCWOa64Zg7N31A1r8WA-8QTPDf4Ygpc6otUDrTAN7dmkk0_dSLp2GUvSI08etrAJp1mH7GOe1sJyfC7pznyVDCcyI" },
                 { id: 3, name: "360 Dinâmico", uses: "VÍDEO", bg: "#222", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdZpv0pBrSD-tnSXiDAHYi1hbKfOaXIiV1q1RgSD1JfBU8ConkdhVxJYmiKM8lhpN4JzYxXyp0LGi4niYz2OrECaON7fb-YpWsGn1Mrt1UO0UYubZnx9NXQazpyDphoYtV6I7T7w_I-MuxGnWBu2BWnvsIImoHeg-wgZBeLI4GECCpKa_qkb3xqPND31AfvmukBAimrex_sP1guMbn7NU8pubLg3FpyhCm-wPe3mLWl0IZtVh-JSi9jpKOJHFG2Vv6N4uiVNvJQBk", isVideo: true }
             ];
@@ -640,73 +640,42 @@
                 setProcessing(true);
                 setError('');
                 try {
-                    var template = templates[selectedTemplate];
+                    // Convert base64 preview to blob
+                    const base64 = currentPhoto.preview;
+                    const byteString = atob(base64.split(',')[1]);
+                    const mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+                    const blob = new Blob([ab], { type: mimeType });
 
-                    if (template.isBytedance) {
-                        // --- Bytedance Seedream flow ---
-                        // Upload the local photo to backend to get a temporary URL, then call Bytedance
-                        const base64 = currentPhoto.preview;
-                        const byteString = atob(base64.split(',')[1]);
-                        const mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
-                        const ab = new ArrayBuffer(byteString.length);
-                        const ia = new Uint8Array(ab);
-                        for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
-                        const blob = new Blob([ab], { type: mimeType });
+                    const formData = new FormData();
+                    formData.append('image', blob, currentPhoto.name || 'photo.jpg');
 
-                        const uploadForm = new FormData();
-                        uploadForm.append('image', blob, currentPhoto.name || 'photo.jpg');
 
-                        // Call backend proxy endpoint for Bytedance
-                        const res = await fetch('https://studio-xefd.onrender.com/bytedance-bg', {
-                            method: 'POST',
-                            body: uploadForm
-                        });
+                    const res = await fetch('https://studio-xefd.onrender.com/remove-bg', {
+                        method: 'POST',
 
-                        if (!res.ok) {
-                            var errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.error || 'Erro ao processar imagem Bytedance (status ' + res.status + ')');
-                        }
+                        body: formData
+                    });
 
-                        const data = await res.json();
-                        // Bytedance returns an array of image URLs
-                        const imageUrl = data.data && data.data[0] && data.data[0].url;
-                        if (!imageUrl) throw new Error('Bytedance não retornou imagem.');
 
-                        setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
-                        setSliderPos(50);
 
-                    } else {
-                        // --- Remove.bg flow (original) ---
-                        const base64 = currentPhoto.preview;
-                        const byteString = atob(base64.split(',')[1]);
-                        const mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
-                        const ab = new ArrayBuffer(byteString.length);
-                        const ia = new Uint8Array(ab);
-                        for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
-                        const blob = new Blob([ab], { type: mimeType });
-
-                        const formData = new FormData();
-                        formData.append('image', blob, currentPhoto.name || 'photo.jpg');
-
-                        const res = await fetch('https://studio-xefd.onrender.com/remove-bg', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (!res.ok) {
-                            var errData = await res.json().catch(() => ({}));
-                            throw new Error((errData.errors && errData.errors[0] && errData.errors[0].title) || 'Erro ao processar imagem (status ' + res.status + ')');
-                        }
-
-                        const resultBlob = await res.blob();
-                        const carPngUrl = URL.createObjectURL(resultBlob);
-                        var finalUrl = carPngUrl;
-                        if (template.studioImg) {
-                            finalUrl = await composeWithBackground(carPngUrl, template.studioImg);
-                        }
-                        setProcessedImgs(prev => ({ ...prev, [activePhoto]: finalUrl }));
-                        setSliderPos(50);
+                    if (!res.ok) {
+                        var errData = await res.json().catch(() => ({}));
+                        throw new Error((errData.errors && errData.errors[0] && errData.errors[0].title) || 'Erro ao processar imagem (status ' + res.status + ')');
                     }
+
+                    const resultBlob = await res.blob();
+                    const carPngUrl = URL.createObjectURL(resultBlob);
+                    // Compose with studio background if available
+                    var template = templates[selectedTemplate];
+                    var finalUrl = carPngUrl;
+                    if (template.studioImg) {
+                        finalUrl = await composeWithBackground(carPngUrl, template.studioImg);
+                    }
+                    setProcessedImgs(prev => ({ ...prev, [activePhoto]: finalUrl }));
+                    setSliderPos(50);
                 } catch (err) {
                     setError(err.message);
                 } finally {
