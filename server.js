@@ -62,6 +62,57 @@ app.post('/remove-bg', upload.single('image'), async (req, res) => {
   }
 });
 
+// ─── Bytedance Seedream background generation ────────────────────────────────
+app.post('/bytedance-bg', upload.single('image'), async (req, res) => {
+  try {
+    const apiKey = process.env.ARK_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'ARK_API_KEY não configurada no servidor.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+    }
+
+    // Convert buffer to base64 data URL for Bytedance API
+    const base64 = req.file.buffer.toString('base64');
+    const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+    const payload = {
+      model: 'seedream-5-0-260128',
+      prompt: "Photograph the same car from Image 1 at the IDENTICAL camera angle. Preserve every car feature precisely — body shape, paint, badges, grille, headlights, tail lights, side mirrors, wheels, ride height. Preserve ALL visible damage and wear from Image 1: dents, scratches, paint chips, scuffs, rust, cracks, broken parts. Place the car inside a pure white seamless studio with soft, diffused softbox lighting and a subtle shadow underneath. All reflective surfaces — body panels, chrome, headlights, wheel rims — show only soft pale-white reflections of the studio. Windows show glossy reflections of the softbox lighting that obscure the cabin, matching Image 1's reflection density. Remove dealer stickers and plates only. Preserve Image 1's paint color, exposure, gloss, and imperfections.",
+      image: [dataUrl],
+      sequential_image_generation: 'auto',
+      sequential_image_generation_options: { max_images: 3 },
+      size: '2K',
+      output_format: 'png',
+      response_format: 'url',
+      watermark: false,
+    };
+
+    const response = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('Bytedance error:', err);
+      return res.status(response.status).json({ error: err.message || 'Erro na API Bytedance' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+
+  } catch (err) {
+    console.error('bytedance-bg error:', err);
+    res.status(500).json({ error: 'Erro interno: ' + err.message });
+  }
+});
+
 // ─── Vehicle data by plate (IWM Bureau de Preços) ────────────────────────────
 app.get('/vehicle-data', async (req, res) => {
   try {
