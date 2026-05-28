@@ -516,6 +516,10 @@
             const [processingAllProgress, setProcessingAllProgress] = React.useState({ current: 0, total: 0 });
             const [processedImgs, setProcessedImgs] = React.useState({});
             const [error, setError] = React.useState('');
+            const [videoTaskId, setVideoTaskId] = React.useState(null);
+            const [videoStatus, setVideoStatus] = React.useState(null); // null | 'generating' | 'succeeded' | 'failed'
+            const [videoUrl, setVideoUrl] = React.useState(null);
+            const videoPollingRef = React.useRef(null);
             const isDraggingSlider = React.useRef(false);
 
             // Use photos from upload screen via in-memory store
@@ -527,7 +531,8 @@
                 { id: 0, name: "Infinity White", uses: "3.2k USOS", bg: "#f0f0f0", studioImg: STUDIO_TEMPLATE, img: STUDIO_TEMPLATE },
                 { id: 1, name: "Bytedance", uses: "1.8k USOS", bg: "#8a8a8a", studioImg: null, isBytedance: true, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPqX9l8rCgEaJNsDcIVqX7j8vU_nUeqC0g08g69aE4J317qWGWnVyj0MjR9-zGzT8OvfsvTttGK_A4_rc3biQiQPIwjXpZPw9dNNlZZZJC9ykD7CJ6PSTI_-A-x6gfWo2Wa1J2bJ3WT6OI2RkirG_ToGvLn8nTAHliKEc6oeqGYqr5WDQPl8yS0plz7-wdWXWPUNOKBsArcUifeXK3dX_AtFTA83rqq4ibGC1rmZpcLGs550xMxmsDzGuMPpC0eEPh029_XV6lbJg" },
                 { id: 2, name: "Midnight Onyx", uses: "942 USOS", bg: "#1a1a2e", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGdi8qIED4qmgJH0rcg_FQaJ4xwMiCRh9gABhxqZECFtn_7Rw3Ic9IskgPTlzcv0vBBD9LtbqqQAvDqsUNbZ7mcoy9m3Mr-YLY10312_UTXNq0F1WFjL72d6Z8sXmHp-WN3N9a7rbRzCgINx63QOiOYZcCFV9A5btemaMbA7b7jEzSe6S5kEnCWOa64Zg7N31A1r8WA-8QTPDf4Ygpc6otUDrTAN7dmkk0_dSLp2GUvSI08etrAJp1mH7GOe1sJyfC7pznyVDCcyI" },
-                { id: 3, name: "360 Dinâmico", uses: "VÍDEO", bg: "#222", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdZpv0pBrSD-tnSXiDAHYi1hbKfOaXIiV1q1RgSD1JfBU8ConkdhVxJYmiKM8lhpN4JzYxXyp0LGi4niYz2OrECaON7fb-YpWsGn1Mrt1UO0UYubZnx9NXQazpyDphoYtV6I7T7w_I-MuxGnWBu2BWnvsIImoHeg-wgZBeLI4GECCpKa_qkb3xqPND31AfvmukBAimrex_sP1guMbn7NU8pubLg3FpyhCm-wPe3mLWl0IZtVh-JSi9jpKOJHFG2Vv6N4uiVNvJQBk", isVideo: true }
+                { id: 3, name: "360 Dinâmico", uses: "VÍDEO", bg: "#222", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdZpv0pBrSD-tnSXiDAHYi1hbKfOaXIiV1q1RgSD1JfBU8ConkdhVxJYmiKM8lhpN4JzYxXyp0LGi4niYz2OrECaON7fb-YpWsGn1Mrt1UO0UYubZnx9NXQazpyDphoYtV6I7T7w_I-MuxGnWBu2BWnvsIImoHeg-wgZBeLI4GECCpKa_qkb3xqPND31AfvmukBAimrex_sP1guMbn7NU8pubLg3FpyhCm-wPe3mLWl0IZtVh-JSi9jpKOJHFG2Vv6N4uiVNvJQBk", isVideo: true },
+                { id: 4, name: "Redes Sociais", uses: "NOVO", bg: "#0f0f1a", studioImg: null, img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80", isSocialVideo: true },
             ];
 
             const currentPhoto = photos[activePhoto];
@@ -768,6 +773,77 @@
                 setSliderPos(50);
             };
 
+            const generateSocialVideo = async () => {
+                if (photos.length === 0) return;
+                setVideoStatus('generating');
+                setVideoUrl(null);
+                setVideoTaskId(null);
+                setError('');
+
+                try {
+                    const formData = new FormData();
+                    for (var i = 0; i < photos.length; i++) {
+                        const photo = photos[i];
+                        const base64 = photo.preview;
+                        const byteString = atob(base64.split(',')[1]);
+                        const mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
+                        const ab = new ArrayBuffer(byteString.length);
+                        const ia = new Uint8Array(ab);
+                        for (var j = 0; j < byteString.length; j++) { ia[j] = byteString.charCodeAt(j); }
+                        const blob = new Blob([ab], { type: mimeType });
+                        formData.append('images', blob, photo.name || ('foto_' + (i+1) + '.jpg'));
+                    }
+
+                    const res = await fetch('https://studio-xefd.onrender.com/generate-video', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!res.ok) {
+                        const e = await res.json().catch(() => ({}));
+                        throw new Error(e.error || 'Erro ao iniciar geração de vídeo.');
+                    }
+
+                    const data = await res.json();
+                    const taskId = data.task_id;
+                    setVideoTaskId(taskId);
+
+                    // Start polling
+                    const poll = async () => {
+                        try {
+                            const statusRes = await fetch('https://studio-xefd.onrender.com/video-status/' + taskId);
+                            const statusData = await statusRes.json();
+                            const s = statusData.status;
+
+                            if (s === 'succeeded' && statusData.video_url) {
+                                setVideoStatus('succeeded');
+                                setVideoUrl(statusData.video_url);
+                                clearInterval(videoPollingRef.current);
+                            } else if (s === 'failed') {
+                                setVideoStatus('failed');
+                                setError('Falha na geração do vídeo pela API.');
+                                clearInterval(videoPollingRef.current);
+                            }
+                            // else queued/running — keep polling
+                        } catch(e) {
+                            console.error('Polling error:', e);
+                        }
+                    };
+
+                    videoPollingRef.current = setInterval(poll, 5000);
+                    poll(); // immediate first check
+
+                } catch (err) {
+                    setVideoStatus('failed');
+                    setError(err.message);
+                }
+            };
+
+            // Cleanup polling on unmount
+            React.useEffect(() => {
+                return () => { if (videoPollingRef.current) clearInterval(videoPollingRef.current); };
+            }, []);
+
             const filmstripPhotos = photos.length > 0 ? photos : [
                 { preview: "https://lh3.googleusercontent.com/aida-public/AB6AXuAAEnVekLi0Ty9I_SMta9U8kSLooxTK0emNpG661OEb6drJtv22z0Hsv4u0E5qisu9JbLjyeWeE6vi091rfmjlArk0NuINKWo2WNJHlsE6a0gerzbbuVs9WllxAbH4fubCDZkt0FgmdXbe2miWBOeHTUUNWs5KHyIoE0mP6T_E7oLMaDux1JFhsAnwsUiXIZW0ZhCr2hkIyDKoX38rgO0ypDdPv85mnbshA9xQa2NyKrWp5B_eu69Xnmv8Ku5_j1odPQ0p37Jnbqjg" },
                 { preview: "https://lh3.googleusercontent.com/aida-public/AB6AXuCOX-zQ7AmLPkwryRwLRhbh7xGWflWdnJ9y85QYUpHzkMUkFWwKBKdKwlAj0FDOoOC-ZF9x4Ptqm_lqMniGpfAJ1VJwHIqFkTTdtZjqKO228QijZm9ZZdwNe8bYnuG9ArIVUmg88sA4WcFMTnySpKVJu3g9UlFq_ZaVymCkTEw8AUAut837E81Q_VbjCnjbc-ign1PJIVMODTqvFlWp-s0YFcGZX9pBtzb1WzsYAmZy7j8kM2Qj0hVMVEn7FIE-s1Wxz26_Woh_N6w" },
@@ -883,105 +959,169 @@
                                         <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
                                         <span className="uppercase tracking-widest text-xs">Voltar para Upload</span>
                                     </button>
-                                    <button
-                                        onClick={processPhoto}
-                                        disabled={processing || processingAll || !currentPhoto}
-                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || processingAll || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
-                                    >
-                                        {processing ? (
-                                            <React.Fragment>
-                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                                </svg>
-                                                <span className="uppercase tracking-widest text-sm">Processando...</span>
-                                            </React.Fragment>
-                                        ) : (
-                                            <React.Fragment>
-                                                <span className="material-symbols-outlined">bolt</span>
-                                                <span className="uppercase tracking-widest text-sm">
-                                                    {currentProcessed ? "Reprocessar" : "Remover Fundo"}
-                                                </span>
-                                            </React.Fragment>
-                                        )}
-                                    </button>
 
-                                    {/* Processar Todas */}
-                                    {photos.length > 1 && (
-                                        <button
-                                            onClick={processAllPhotos}
-                                            disabled={processing || processingAll}
-                                            className={["w-full h-12 font-bold rounded-lg border-2 active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || processingAll ? "border-slate-200 text-slate-300 cursor-not-allowed" : "border-primary text-primary hover:bg-primary/5 cursor-pointer"].join(' ')}
-                                        >
-                                            {processingAll ? (
-                                                <React.Fragment>
-                                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    {templates[selectedTemplate].isSocialVideo ? (
+                                        /* ── Social Video Panel ── */
+                                        <React.Fragment>
+                                            <div className="rounded-xl p-4 border border-dashed border-primary/40 bg-primary/5 space-y-2">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="material-symbols-outlined text-primary text-[20px]" style={{fontVariationSettings:"'FILL' 1"}}>play_circle</span>
+                                                    <p className="text-sm font-bold text-on-surface">Vídeo para Redes Sociais</p>
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 leading-relaxed">Gera um vídeo 9:16 de 15–20s com slideshow das fotos, texto do veículo e CTA final. Ideal para TikTok, Reels e Stories.</p>
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                    {['TikTok', 'Reels', 'Stories'].map(tag => (
+                                                        <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider">{tag}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Status de geração */}
+                                            {videoStatus === 'generating' && (
+                                                <div className="flex items-center gap-3 px-4 py-3 bg-surface-container rounded-lg">
+                                                    <svg className="animate-spin h-5 w-5 text-primary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                                     </svg>
-                                                    <span className="uppercase tracking-widest text-xs">
-                                                        Processando {processingAllProgress.current}/{processingAllProgress.total}...
-                                                    </span>
-                                                </React.Fragment>
-                                            ) : (
-                                                <React.Fragment>
-                                                    <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-                                                    <span className="uppercase tracking-widest text-xs">
-                                                        Processar Todas ({photos.length} fotos)
-                                                    </span>
-                                                </React.Fragment>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-on-surface">Gerando vídeo...</p>
+                                                        <p className="text-[11px] text-slate-400">Pode levar até 2 minutos</p>
+                                                    </div>
+                                                </div>
                                             )}
-                                        </button>
-                                    )}
 
+                                            {videoStatus === 'succeeded' && videoUrl && (
+                                                <div className="space-y-2">
+                                                    <video
+                                                        src={videoUrl}
+                                                        controls
+                                                        className="w-full rounded-xl border border-slate-200"
+                                                        style={{maxHeight: 320}}
+                                                    />
+                                                    <a
+                                                        href={'https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(videoUrl)}
+                                                        download="video_redes_sociais.mp4"
+                                                        className="w-full h-11 bg-[#2F2F32] text-white font-bold rounded-lg hover:bg-[#1a1a1a] transition-all flex items-center justify-center space-x-2"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">download</span>
+                                                        <span className="uppercase tracking-widest text-xs">Baixar vídeo</span>
+                                                    </a>
+                                                </div>
+                                            )}
 
-                                    {/* Download buttons - shown after processing */}
-                                    {currentProcessed && (
-                                        <a
-                                            href={currentProcessed}
-                                            download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
-                                            className="w-full h-11 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">download</span>
-                                            <span className="uppercase tracking-widest text-xs">Baixar esta foto</span>
-                                        </a>
-                                    )}
-                                    {Object.keys(processedImgs).length > 1 && (
-                                        <button
-                                            onClick={async () => {
-                                                const entries = Object.entries(processedImgs);
-                                                for (var idx = 0; idx < entries.length; idx++) {
-                                                    const [i, url] = entries[idx];
-                                                    try {
-                                                        let blobUrl;
-                                                        if (url.startsWith('blob:')) {
-                                                            // Local blob — use directly
-                                                            blobUrl = url;
-                                                        } else {
-                                                            // External URL (ex: Bytedance) — proxy via backend to avoid CORS
-                                                            const resp = await fetch('https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(url));
-                                                            const blob = await resp.blob();
-                                                            blobUrl = URL.createObjectURL(blob);
+                                            <button
+                                                onClick={generateSocialVideo}
+                                                disabled={videoStatus === 'generating' || photos.length === 0}
+                                                className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", videoStatus === 'generating' || photos.length === 0 ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-[#7c3aed] to-[#4f46e5] hover:shadow-xl cursor-pointer"].join(' ')}
+                                            >
+                                                <span className="material-symbols-outlined">movie</span>
+                                                <span className="uppercase tracking-widest text-sm">
+                                                    {videoStatus === 'generating' ? 'Gerando...' : videoStatus === 'succeeded' ? 'Gerar Novamente' : 'Gerar Vídeo'}
+                                                </span>
+                                            </button>
+                                        </React.Fragment>
+                                    ) : (
+                                        /* ── Botões normais de foto ── */
+                                        <React.Fragment>
+                                            <button
+                                                onClick={processPhoto}
+                                                disabled={processing || processingAll || !currentPhoto}
+                                                className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || processingAll || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
+                                            >
+                                                {processing ? (
+                                                    <React.Fragment>
+                                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                        </svg>
+                                                        <span className="uppercase tracking-widest text-sm">Processando...</span>
+                                                    </React.Fragment>
+                                                ) : (
+                                                    <React.Fragment>
+                                                        <span className="material-symbols-outlined">bolt</span>
+                                                        <span className="uppercase tracking-widest text-sm">
+                                                            {currentProcessed ? "Reprocessar" : "Remover Fundo"}
+                                                        </span>
+                                                    </React.Fragment>
+                                                )}
+                                            </button>
+
+                                            {/* Processar Todas */}
+                                            {photos.length > 1 && (
+                                                <button
+                                                    onClick={processAllPhotos}
+                                                    disabled={processing || processingAll}
+                                                    className={["w-full h-12 font-bold rounded-lg border-2 active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || processingAll ? "border-slate-200 text-slate-300 cursor-not-allowed" : "border-primary text-primary hover:bg-primary/5 cursor-pointer"].join(' ')}
+                                                >
+                                                    {processingAll ? (
+                                                        <React.Fragment>
+                                                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                            </svg>
+                                                            <span className="uppercase tracking-widest text-xs">
+                                                                Processando {processingAllProgress.current}/{processingAllProgress.total}...
+                                                            </span>
+                                                        </React.Fragment>
+                                                    ) : (
+                                                        <React.Fragment>
+                                                            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                                                            <span className="uppercase tracking-widest text-xs">
+                                                                Processar Todas ({photos.length} fotos)
+                                                            </span>
+                                                        </React.Fragment>
+                                                    )}
+                                                </button>
+                                            )}
+
+                                            {/* Download buttons */}
+                                            {currentProcessed && (
+                                                <a
+                                                    href={currentProcessed}
+                                                    download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
+                                                    className="w-full h-11 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
+                                                >
+                                                    <span className="material-symbols-outlined text-sm">download</span>
+                                                    <span className="uppercase tracking-widest text-xs">Baixar esta foto</span>
+                                                </a>
+                                            )}
+                                            {Object.keys(processedImgs).length > 1 && (
+                                                <button
+                                                    onClick={async () => {
+                                                        const entries = Object.entries(processedImgs);
+                                                        for (var idx = 0; idx < entries.length; idx++) {
+                                                            const [i, url] = entries[idx];
+                                                            try {
+                                                                let blobUrl;
+                                                                if (url.startsWith('blob:')) {
+                                                                    blobUrl = url;
+                                                                } else {
+                                                                    const resp = await fetch('https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(url));
+                                                                    const blob = await resp.blob();
+                                                                    blobUrl = URL.createObjectURL(blob);
+                                                                }
+                                                                const a = document.createElement('a');
+                                                                a.href = blobUrl;
+                                                                a.download = 'foto_processada_' + (parseInt(i)+1) + '.png';
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                document.body.removeChild(a);
+                                                                if (!url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                                                                await new Promise(r => setTimeout(r, 400));
+                                                            } catch(e) {
+                                                                console.error('Erro ao baixar foto ' + (parseInt(i)+1), e);
+                                                            }
                                                         }
-                                                        const a = document.createElement('a');
-                                                        a.href = blobUrl;
-                                                        a.download = 'foto_processada_' + (parseInt(i)+1) + '.png';
-                                                        document.body.appendChild(a);
-                                                        a.click();
-                                                        document.body.removeChild(a);
-                                                        if (!url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                                                        await new Promise(r => setTimeout(r, 400));
-                                                    } catch(e) {
-                                                        console.error('Erro ao baixar foto ' + (parseInt(i)+1), e);
-                                                    }
-                                                }
-                                            }}
-                                            className="w-full h-11 bg-[#2F2F32] text-white font-bold rounded-lg hover:bg-[#1a1a1a] transition-all flex items-center justify-center space-x-2"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">download_for_offline</span>
-                                            <span className="uppercase tracking-widest text-xs">Baixar todas ({Object.keys(processedImgs).length} fotos)</span>
-                                        </button>
+                                                    }}
+                                                    className="w-full h-11 bg-[#2F2F32] text-white font-bold rounded-lg hover:bg-[#1a1a1a] transition-all flex items-center justify-center space-x-2"
+                                                >
+                                                    <span className="material-symbols-outlined text-sm">download_for_offline</span>
+                                                    <span className="uppercase tracking-widest text-xs">Baixar todas ({Object.keys(processedImgs).length} fotos)</span>
+                                                </button>
+                                            )}
+                                        </React.Fragment>
                                     )}
+
                                     {photos.length > 0 && (
                                         <button
                                             onClick={() => {
