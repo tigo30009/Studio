@@ -509,6 +509,8 @@
             const [selectedTemplate, setSelectedTemplate] = React.useState(0);
             const [activePhoto, setActivePhoto] = React.useState(0);
             const [processing, setProcessing] = React.useState(false);
+            const [processingAll, setProcessingAll] = React.useState(false);
+            const [processingAllProgress, setProcessingAllProgress] = React.useState({ current: 0, total: 0 });
             const [processedImgs, setProcessedImgs] = React.useState({});
             const [error, setError] = React.useState('');
             const isDraggingSlider = React.useRef(false);
@@ -714,6 +716,55 @@
                 }
             };
 
+            const processAllPhotos = async () => {
+                if (photos.length === 0) return;
+                setProcessingAll(true);
+                setError('');
+                const template = templates[selectedTemplate];
+                const total = photos.length;
+                setProcessingAllProgress({ current: 0, total });
+
+                for (var idx = 0; idx < photos.length; idx++) {
+                    const photo = photos[idx];
+                    setProcessingAllProgress({ current: idx + 1, total });
+                    try {
+                        const base64 = photo.preview;
+                        const byteString = atob(base64.split(',')[1]);
+                        const mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
+                        const ab = new ArrayBuffer(byteString.length);
+                        const ia = new Uint8Array(ab);
+                        for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+                        const blob = new Blob([ab], { type: mimeType });
+
+                        if (template.isBytedance) {
+                            const uploadForm = new FormData();
+                            uploadForm.append('image', blob, photo.name || 'photo.jpg');
+                            const res = await fetch('https://studio-xefd.onrender.com/bytedance-bg', { method: 'POST', body: uploadForm });
+                            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro Bytedance foto ' + (idx+1)); }
+                            const data = await res.json();
+                            const imageUrl = data.data && data.data[0] && data.data[0].url;
+                            if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
+                            setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
+                        } else {
+                            const formData = new FormData();
+                            formData.append('image', blob, photo.name || 'photo.jpg');
+                            const res = await fetch('https://studio-xefd.onrender.com/remove-bg', { method: 'POST', body: formData });
+                            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error((e.errors && e.errors[0] && e.errors[0].title) || 'Erro Remove.bg foto ' + (idx+1)); }
+                            const resultBlob = await res.blob();
+                            const carPngUrl = URL.createObjectURL(resultBlob);
+                            var finalUrl = carPngUrl;
+                            if (template.studioImg) { finalUrl = await composeWithBackground(carPngUrl, template.studioImg); }
+                            setProcessedImgs(prev => ({ ...prev, [idx]: finalUrl }));
+                        }
+                    } catch (err) {
+                        setError('Foto ' + (idx+1) + ': ' + err.message);
+                        // continue processing remaining photos
+                    }
+                }
+                setProcessingAll(false);
+                setProcessingAllProgress({ current: 0, total: 0 });
+            };
+
             const filmstripPhotos = photos.length > 0 ? photos : [
                 { preview: "https://lh3.googleusercontent.com/aida-public/AB6AXuAAEnVekLi0Ty9I_SMta9U8kSLooxTK0emNpG661OEb6drJtv22z0Hsv4u0E5qisu9JbLjyeWeE6vi091rfmjlArk0NuINKWo2WNJHlsE6a0gerzbbuVs9WllxAbH4fubCDZkt0FgmdXbe2miWBOeHTUUNWs5KHyIoE0mP6T_E7oLMaDux1JFhsAnwsUiXIZW0ZhCr2hkIyDKoX38rgO0ypDdPv85mnbshA9xQa2NyKrWp5B_eu69Xnmv8Ku5_j1odPQ0p37Jnbqjg" },
                 { preview: "https://lh3.googleusercontent.com/aida-public/AB6AXuCOX-zQ7AmLPkwryRwLRhbh7xGWflWdnJ9y85QYUpHzkMUkFWwKBKdKwlAj0FDOoOC-ZF9x4Ptqm_lqMniGpfAJ1VJwHIqFkTTdtZjqKO228QijZm9ZZdwNe8bYnuG9ArIVUmg88sA4WcFMTnySpKVJu3g9UlFq_ZaVymCkTEw8AUAut837E81Q_VbjCnjbc-ign1PJIVMODTqvFlWp-s0YFcGZX9pBtzb1WzsYAmZy7j8kM2Qj0hVMVEn7FIE-s1Wxz26_Woh_N6w" },
@@ -831,8 +882,8 @@
                                     </button>
                                     <button
                                         onClick={processPhoto}
-                                        disabled={processing || !currentPhoto}
-                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
+                                        disabled={processing || processingAll || !currentPhoto}
+                                        className={["w-full h-14 text-white font-bold rounded-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || processingAll || !currentPhoto ? "bg-slate-300 cursor-not-allowed" : "bg-gradient-to-br from-primary-container to-primary hover:shadow-xl cursor-pointer"].join(' ')}
                                     >
                                         {processing ? (
                                             <React.Fragment>
@@ -851,6 +902,35 @@
                                             </React.Fragment>
                                         )}
                                     </button>
+
+                                    {/* Processar Todas */}
+                                    {photos.length > 1 && (
+                                        <button
+                                            onClick={processAllPhotos}
+                                            disabled={processing || processingAll}
+                                            className={["w-full h-12 font-bold rounded-lg border-2 active:scale-[0.98] transition-all flex items-center justify-center space-x-2", processing || processingAll ? "border-slate-200 text-slate-300 cursor-not-allowed" : "border-primary text-primary hover:bg-primary/5 cursor-pointer"].join(' ')}
+                                        >
+                                            {processingAll ? (
+                                                <React.Fragment>
+                                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                    </svg>
+                                                    <span className="uppercase tracking-widest text-xs">
+                                                        Processando {processingAllProgress.current}/{processingAllProgress.total}...
+                                                    </span>
+                                                </React.Fragment>
+                                            ) : (
+                                                <React.Fragment>
+                                                    <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                                                    <span className="uppercase tracking-widest text-xs">
+                                                        Processar Todas ({photos.length} fotos)
+                                                    </span>
+                                                </React.Fragment>
+                                            )}
+                                        </button>
+                                    )}
+
 
                                     {/* Download buttons - shown after processing */}
                                     {currentProcessed && (
