@@ -103,6 +103,50 @@ app.post('/bytedance-bg', upload.single('image'), async (req, res) => {
   }
 });
 
+// ─── Estúdio Branco — Bytedance com fundo de plataforma ──────────────────────
+app.post('/estudio-branco-bg', upload.single('image'), async (req, res) => {
+  try {
+    const apiKey = process.env.ARK_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'ARK_API_KEY não configurada no servidor.' });
+    if (!req.file) return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+
+    const base64 = req.file.buffer.toString('base64');
+    const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+    const FUNDO_URL = 'https://raw.githubusercontent.com/tigo30009/Studio/main/Fundo_estudio_1.jpeg';
+
+    const payload = {
+      model: 'seedream-5-0-260128',
+      prompt: "Photograph the same car from Image 1 at the IDENTICAL camera angle. Preserve every car feature precisely — body shape, paint color, badges, grille, headlights, tail lights, side mirrors, wheels, ride height. Faithfully reproduce only the damage and wear actually visible in Image 1; keep the car's exact condition as photographed. Place the car on the circular platform in Image 2, scaled so the car occupies 70% of the platform diameter with clear platform edge visible around all tires. Dual overhead softbox lighting, white cyclorama walls, gray concrete floor. Remove dealer stickers and plates only.",
+      image: [dataUrl, FUNDO_URL],
+      sequential_image_generation: 'auto',
+      sequential_image_generation_options: { max_images: 3 },
+      size: '2K',
+      output_format: 'png',
+      response_format: 'url',
+      watermark: false,
+    };
+
+    const response = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('estudio-branco-bg error:', err);
+      return res.status(response.status).json({ error: err.message || 'Erro na API Bytedance' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('estudio-branco-bg error:', err);
+    res.status(500).json({ error: 'Erro interno: ' + err.message });
+  }
+});
+
 // ─── Bytedance Seedance video generation ─────────────────────────────────────
 const os = require('os');
 const { randomUUID } = require('crypto');
