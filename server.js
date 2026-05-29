@@ -205,13 +205,16 @@ app.get('/video-status/:taskId', async (req, res) => {
     console.log(`[video-status] status=${data.status} content=${JSON.stringify(data.content || []).substring(0, 200)}`);
 
     const status = data.status;
-    // Try multiple possible response shapes
-    const videoUrl = (
-      (data.content && data.content[0] && data.content[0].video_url && data.content[0].video_url.url) ||
-      (data.content && data.content[0] && data.content[0].url) ||
-      (data.video_url) ||
-      null
-    );
+    // API returns content as object {video_url: "..."} or array [{video_url: {...}}]
+    let videoUrl = null;
+    if (data.content) {
+      if (typeof data.content === 'object' && !Array.isArray(data.content) && data.content.video_url) {
+        videoUrl = typeof data.content.video_url === 'string' ? data.content.video_url : data.content.video_url.url;
+      } else if (Array.isArray(data.content) && data.content[0]) {
+        videoUrl = (data.content[0].video_url && data.content[0].video_url.url) || data.content[0].video_url || data.content[0].url || null;
+      }
+    }
+    if (!videoUrl && data.video_url) videoUrl = data.video_url;
 
     console.log(`[video-status] resolved video_url=${videoUrl}`);
     res.json({ status, video_url: videoUrl, raw: data });
