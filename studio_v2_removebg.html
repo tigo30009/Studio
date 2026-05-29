@@ -773,6 +773,11 @@
                 setSliderPos(50);
             };
 
+            // ── Video localStorage helpers ──────────────────────────────────
+            const VIDEOS_KEY = 'wm_studio_videos';
+            const loadVideos = () => { try { return JSON.parse(localStorage.getItem(VIDEOS_KEY) || '[]'); } catch(e) { return []; } };
+            const saveVideos = (list) => { try { localStorage.setItem(VIDEOS_KEY, JSON.stringify(list)); } catch(e) {} };
+
             const generateSocialVideo = async () => {
                 if (photos.length === 0) return;
                 setVideoStatus('generating');
@@ -794,11 +799,7 @@
                         formData.append('images', blob, photo.name || ('foto_' + (i+1) + '.jpg'));
                     }
 
-                    const res = await fetch('https://studio-xefd.onrender.com/generate-video', {
-                        method: 'POST',
-                        body: formData,
-                    });
-
+                    const res = await fetch('https://studio-xefd.onrender.com/generate-video', { method: 'POST', body: formData });
                     if (!res.ok) {
                         const e = await res.json().catch(() => ({}));
                         throw new Error(e.error || 'Erro ao iniciar geração de vídeo.');
@@ -808,30 +809,35 @@
                     const taskId = data.task_id;
                     setVideoTaskId(taskId);
 
+                    // Save to localStorage
+                    const thumbnail = photos[0] ? photos[0].preview : null;
+                    const existing = loadVideos();
+                    saveVideos([{ task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, thumbnail }, ...existing]);
+
                     // Start polling
                     const poll = async () => {
                         try {
                             const statusRes = await fetch('https://studio-xefd.onrender.com/video-status/' + taskId);
                             const statusData = await statusRes.json();
                             const s = statusData.status;
-
                             if (s === 'succeeded' && statusData.video_url) {
                                 setVideoStatus('succeeded');
                                 setVideoUrl(statusData.video_url);
                                 clearInterval(videoPollingRef.current);
+                                // Update localStorage
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'succeeded', video_url: statusData.video_url } : v);
+                                saveVideos(updated);
                             } else if (s === 'failed') {
                                 setVideoStatus('failed');
                                 setError('Falha na geração do vídeo pela API.');
                                 clearInterval(videoPollingRef.current);
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'failed' } : v);
+                                saveVideos(updated);
                             }
-                            // else queued/running — keep polling
-                        } catch(e) {
-                            console.error('Polling error:', e);
-                        }
+                        } catch(e) { console.error('Polling error:', e); }
                     };
-
                     videoPollingRef.current = setInterval(poll, 5000);
-                    poll(); // immediate first check
+                    poll();
 
                 } catch (err) {
                     setVideoStatus('failed');
@@ -979,16 +985,39 @@
                                     {templates[selectedTemplate].isSocialVideo ? (
                                         /* ── Social Video Panel ── */
                                         <React.Fragment>
-                                            <div className="rounded-xl p-4 border border-dashed border-primary/40 bg-primary/5 space-y-2">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="material-symbols-outlined text-primary text-[20px]" style={{fontVariationSettings:"'FILL' 1"}}>play_circle</span>
+                                            <div className="rounded-xl p-4 border border-dashed border-[#7c3aed]/40 bg-[#7c3aed]/5 space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[#7c3aed] text-[20px]" style={{fontVariationSettings:"'FILL' 1"}}>play_circle</span>
                                                     <p className="text-sm font-bold text-on-surface">Vídeo para Redes Sociais</p>
                                                 </div>
-                                                <p className="text-[11px] text-slate-500 leading-relaxed">Gera um vídeo 9:16 de 15–20s com slideshow das fotos, texto do veículo e CTA final. Ideal para TikTok, Reels e Stories.</p>
-                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                <p className="text-[11px] text-slate-500 leading-relaxed">Gera um vídeo 9:16 de 15s com slideshow das fotos, textos do veículo e CTA final.</p>
+
+                                                {/* Fotos que serão usadas */}
+                                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#7c3aed]/20">
+                                                    <span className="material-symbols-outlined text-[#7c3aed] text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>photo_library</span>
+                                                    {photos.length > 0 ? (
+                                                        <p className="text-[11px] font-semibold text-on-surface">
+                                                            <span className="text-[#7c3aed] font-black">{photos.length} foto{photos.length > 1 ? 's' : ''}</span> serão usadas no vídeo
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-[11px] font-semibold text-slate-400">Nenhuma foto carregada</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Thumbnails preview */}
+                                                {photos.length > 0 && (
+                                                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                                                        {photos.map((p, i) => (
+                                                            <img key={i} src={p.preview} className="w-10 h-10 rounded-md object-cover flex-shrink-0 border-2 border-white shadow-sm" alt={"foto " + (i+1)} />
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex flex-wrap gap-2">
                                                     {['TikTok', 'Reels', 'Stories'].map(tag => (
-                                                        <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider">{tag}</span>
+                                                        <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#7c3aed]/10 text-[#7c3aed] uppercase tracking-wider">{tag}</span>
                                                     ))}
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 uppercase tracking-wider">9:16 · 15s</span>
                                                 </div>
                                             </div>
 
@@ -1034,6 +1063,14 @@
                                                 <span className="uppercase tracking-widest text-sm">
                                                     {videoStatus === 'generating' ? 'Gerando...' : videoStatus === 'succeeded' ? 'Gerar Novamente' : 'Gerar Vídeo'}
                                                 </span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => navigate('/meus-videos')}
+                                                className="w-full h-11 border-2 border-[#7c3aed] text-[#7c3aed] font-bold rounded-lg hover:bg-[#7c3aed]/5 transition-all flex items-center justify-center space-x-2"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">video_library</span>
+                                                <span className="uppercase tracking-widest text-xs">Meus Vídeos</span>
                                             </button>
                                         </React.Fragment>
                                     ) : (
@@ -1768,6 +1805,181 @@
             );
         };
 
+        // --- Meus Vídeos Screen ---
+
+        const VIDEOS_KEY = 'wm_studio_videos';
+        const loadVideosGlobal = () => { try { return JSON.parse(localStorage.getItem(VIDEOS_KEY) || '[]'); } catch(e) { return []; } };
+        const saveVideosGlobal = (list) => { try { localStorage.setItem(VIDEOS_KEY, JSON.stringify(list)); } catch(e) {} };
+
+        const MeusVideosScreen = () => {
+            const navigate = useNavigate();
+            const [videos, setVideos] = React.useState(loadVideosGlobal);
+            const pollingRefs = React.useRef({});
+
+            const formatDate = (iso) => {
+                const d = new Date(iso);
+                return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            };
+
+            const updateVideo = (taskId, patch) => {
+                setVideos(prev => {
+                    const updated = prev.map(v => v.task_id === taskId ? { ...v, ...patch } : v);
+                    saveVideosGlobal(updated);
+                    return updated;
+                });
+            };
+
+            const startPolling = (taskId) => {
+                if (pollingRefs.current[taskId]) return; // already polling
+                const interval = setInterval(async () => {
+                    try {
+                        const res = await fetch('https://studio-xefd.onrender.com/video-status/' + taskId);
+                        const data = await res.json();
+                        if (data.status === 'succeeded' && data.video_url) {
+                            updateVideo(taskId, { status: 'succeeded', video_url: data.video_url });
+                            clearInterval(pollingRefs.current[taskId]);
+                            delete pollingRefs.current[taskId];
+                        } else if (data.status === 'failed') {
+                            updateVideo(taskId, { status: 'failed' });
+                            clearInterval(pollingRefs.current[taskId]);
+                            delete pollingRefs.current[taskId];
+                        }
+                    } catch(e) { console.error('Polling error:', e); }
+                }, 5000);
+                pollingRefs.current[taskId] = interval;
+            };
+
+            // On mount: start polling for all pending videos
+            React.useEffect(() => {
+                videos.forEach(v => {
+                    if (v.status === 'generating') startPolling(v.task_id);
+                });
+                return () => {
+                    Object.values(pollingRefs.current).forEach(clearInterval);
+                };
+            }, []);
+
+            const deleteVideo = (taskId) => {
+                if (pollingRefs.current[taskId]) { clearInterval(pollingRefs.current[taskId]); delete pollingRefs.current[taskId]; }
+                setVideos(prev => { const updated = prev.filter(v => v.task_id !== taskId); saveVideosGlobal(updated); return updated; });
+            };
+
+            return (
+                <div className="flex min-h-screen bg-[#F7F7F9]">
+                    <Sidebar version="collapsed" />
+                    <div className="flex-1 flex flex-col">
+                        <TopBar version="slim" />
+                        <main className="flex-1 px-4 md:px-8 py-8 max-w-[1000px] mx-auto w-full">
+
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <button onClick={() => navigate('/studio')} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-wider mb-3 transition-colors">
+                                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                                        Voltar ao Estúdio
+                                    </button>
+                                    <h1 className="text-2xl font-black text-on-surface tracking-tight">Meus Vídeos</h1>
+                                    <p className="text-sm text-slate-400 mt-1">Vídeos gerados para redes sociais. Prontos em até 2 minutos.</p>
+                                </div>
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-500">
+                                    <span className="material-symbols-outlined text-[16px] text-[#7c3aed]">video_library</span>
+                                    {videos.length} vídeo{videos.length !== 1 ? 's' : ''}
+                                </div>
+                            </div>
+
+                            {/* Empty state */}
+                            {videos.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-24 text-center">
+                                    <div className="w-20 h-20 rounded-full bg-[#7c3aed]/10 flex items-center justify-center mb-6">
+                                        <span className="material-symbols-outlined text-[#7c3aed] text-4xl">movie</span>
+                                    </div>
+                                    <h2 className="text-lg font-black text-on-surface mb-2">Nenhum vídeo ainda</h2>
+                                    <p className="text-sm text-slate-400 max-w-xs mb-6">Selecione o fundo "Redes Sociais" no Estúdio e gere seu primeiro vídeo para TikTok e Reels.</p>
+                                    <button onClick={() => navigate('/studio')} className="h-11 px-6 bg-gradient-to-br from-[#7c3aed] to-[#4f46e5] text-white font-bold rounded-lg text-sm flex items-center gap-2 hover:shadow-lg transition-all">
+                                        <span className="material-symbols-outlined text-[18px]">add</span>
+                                        Gerar primeiro vídeo
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Video list */}
+                            <div className="space-y-4">
+                                {videos.map((v) => (
+                                    <div key={v.task_id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{boxShadow:'var(--shadow-ds-level-1)'}}>
+                                        <div className="flex gap-4 p-4">
+
+                                            {/* Thumbnail */}
+                                            <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
+                                                {v.thumbnail ? (
+                                                    <img src={v.thumbnail} className="w-full h-full object-cover" alt="thumb" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-slate-300 text-3xl">image</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div>
+                                                        <p className="text-xs text-slate-400 mb-1">{formatDate(v.created_at)}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            {v.status === 'generating' && (
+                                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+                                                                    <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                                                    Gerando...
+                                                                </span>
+                                                            )}
+                                                            {v.status === 'succeeded' && (
+                                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-600 border border-green-200">
+                                                                    <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>check_circle</span>
+                                                                    Pronto
+                                                                </span>
+                                                            )}
+                                                            {v.status === 'failed' && (
+                                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-500 border border-red-200">
+                                                                    <span className="material-symbols-outlined text-[12px]">error</span>
+                                                                    Erro
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[10px] text-slate-300 font-mono">{v.task_id.substring(0, 16)}...</span>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => deleteVideo(v.task_id)} className="p-1.5 text-slate-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50">
+                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                    </button>
+                                                </div>
+
+                                                {/* Video player when ready */}
+                                                {v.status === 'succeeded' && v.video_url && (
+                                                    <div className="mt-3 space-y-2">
+                                                        <video src={v.video_url} controls className="w-full rounded-xl border border-slate-100 max-h-64" />
+                                                        <a
+                                                            href={'https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(v.video_url)}
+                                                            download="video_redes_sociais.mp4"
+                                                            className="inline-flex items-center gap-2 h-9 px-4 bg-gradient-to-br from-[#7c3aed] to-[#4f46e5] text-white text-xs font-bold rounded-lg hover:shadow-md transition-all"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">download</span>
+                                                            Baixar vídeo
+                                                        </a>
+                                                    </div>
+                                                )}
+
+                                                {v.status === 'generating' && (
+                                                    <p className="text-xs text-slate-400 mt-2">Pode levar até 2 minutos. Você pode fechar esta tela e voltar depois.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
         // --- App Component ---
 
         const App = () => {
@@ -1778,6 +1990,7 @@
                         <Route path="/studio" element={<StudioScreen />} />
                         <Route path="/placa" element={<PlacaScreen />} />
                         <Route path="/anuncio" element={<AnuncioScreen />} />
+                        <Route path="/meus-videos" element={<MeusVideosScreen />} />
                     </Routes>
                 </MemoryRouter>
             );
