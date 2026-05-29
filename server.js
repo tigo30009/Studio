@@ -131,7 +131,7 @@ app.post('/generate-video', upload.array('images', 20), async (req, res) => {
     }
 
     // Build content array: text prompt + reference images
-    const prompt = `Create a 15–20 second vertical 9:16 video slideshow from the provided car photos. Open with 10 seconds of exterior shots using smooth transitions and motion blur. Follow with interior shots for 5 seconds. Overlay bold text callouts in Brazilian Portuguese highlighting the car's make, model, year, and key features. Close with a 3-second branded outro with large centered text in Brazilian Portuguese: "Venha agora mesmo visitar a nossa loja". Add upbeat background music. Keep pacing energetic and social-media native.`;
+    const prompt = `15–20 second vertical 9:16 car promotional video slideshow. Open with 10 seconds of exterior car shots using smooth transitions and motion blur. Follow with interior shots for 5 seconds if available. Overlay bold text callouts highlighting the car's make, model, year, and key features. Close with a 3-second branded outro with large centered text: "Venha agora mesmo visitar a nossa loja". Add upbeat background music. Keep pacing energetic and social-media native for TikTok and Reels.`;
 
     const content = [
       { type: 'text', text: prompt },
@@ -147,7 +147,7 @@ app.post('/generate-video', upload.array('images', 20), async (req, res) => {
       content,
       generate_audio: true,
       ratio: '9:16',
-      duration: 16,
+      duration: 15,
       watermark: false,
     };
 

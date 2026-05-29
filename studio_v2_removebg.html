@@ -528,10 +528,10 @@
             const STUDIO_TEMPLATE = "/estudio_infinity_white.jpg";
 
             const templates = [
-                { id: 0, name: "Infinity White", uses: "3.2k USOS", bg: "#f0f0f0", studioImg: STUDIO_TEMPLATE, img: STUDIO_TEMPLATE },
+                { id: 0, name: "Infinity White", uses: "3.2k USOS", bg: "#f0f0f0", studioImg: STUDIO_TEMPLATE, img: STUDIO_TEMPLATE, comingSoon: true },
                 { id: 1, name: "Bytedance", uses: "1.8k USOS", bg: "#8a8a8a", studioImg: null, isBytedance: true, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPqX9l8rCgEaJNsDcIVqX7j8vU_nUeqC0g08g69aE4J317qWGWnVyj0MjR9-zGzT8OvfsvTttGK_A4_rc3biQiQPIwjXpZPw9dNNlZZZJC9ykD7CJ6PSTI_-A-x6gfWo2Wa1J2bJ3WT6OI2RkirG_ToGvLn8nTAHliKEc6oeqGYqr5WDQPl8yS0plz7-wdWXWPUNOKBsArcUifeXK3dX_AtFTA83rqq4ibGC1rmZpcLGs550xMxmsDzGuMPpC0eEPh029_XV6lbJg" },
-                { id: 2, name: "Midnight Onyx", uses: "942 USOS", bg: "#1a1a2e", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGdi8qIED4qmgJH0rcg_FQaJ4xwMiCRh9gABhxqZECFtn_7Rw3Ic9IskgPTlzcv0vBBD9LtbqqQAvDqsUNbZ7mcoy9m3Mr-YLY10312_UTXNq0F1WFjL72d6Z8sXmHp-WN3N9a7rbRzCgINx63QOiOYZcCFV9A5btemaMbA7b7jEzSe6S5kEnCWOa64Zg7N31A1r8WA-8QTPDf4Ygpc6otUDrTAN7dmkk0_dSLp2GUvSI08etrAJp1mH7GOe1sJyfC7pznyVDCcyI" },
-                { id: 3, name: "360 Dinâmico", uses: "VÍDEO", bg: "#222", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdZpv0pBrSD-tnSXiDAHYi1hbKfOaXIiV1q1RgSD1JfBU8ConkdhVxJYmiKM8lhpN4JzYxXyp0LGi4niYz2OrECaON7fb-YpWsGn1Mrt1UO0UYubZnx9NXQazpyDphoYtV6I7T7w_I-MuxGnWBu2BWnvsIImoHeg-wgZBeLI4GECCpKa_qkb3xqPND31AfvmukBAimrex_sP1guMbn7NU8pubLg3FpyhCm-wPe3mLWl0IZtVh-JSi9jpKOJHFG2Vv6N4uiVNvJQBk", isVideo: true },
+                { id: 2, name: "Midnight Onyx", uses: "942 USOS", bg: "#1a1a2e", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGdi8qIED4qmgJH0rcg_FQaJ4xwMiCRh9gABhxqZECFtn_7Rw3Ic9IskgPTlzcv0vBBD9LtbqqQAvDqsUNbZ7mcoy9m3Mr-YLY10312_UTXNq0F1WFjL72d6Z8sXmHp-WN3N9a7rbRzCgINx63QOiOYZcCFV9A5btemaMbA7b7jEzSe6S5kEnCWOa64Zg7N31A1r8WA-8QTPDf4Ygpc6otUDrTAN7dmkk0_dSLp2GUvSI08etrAJp1mH7GOe1sJyfC7pznyVDCcyI", comingSoon: true },
+                { id: 3, name: "360 Dinâmico", uses: "VÍDEO", bg: "#222", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdZpv0pBrSD-tnSXiDAHYi1hbKfOaXIiV1q1RgSD1JfBU8ConkdhVxJYmiKM8lhpN4JzYxXyp0LGi4niYz2OrECaON7fb-YpWsGn1Mrt1UO0UYubZnx9NXQazpyDphoYtV6I7T7w_I-MuxGnWBu2BWnvsIImoHeg-wgZBeLI4GECCpKa_qkb3xqPND31AfvmukBAimrex_sP1guMbn7NU8pubLg3FpyhCm-wPe3mLWl0IZtVh-JSi9jpKOJHFG2Vv6N4uiVNvJQBk", isVideo: true, comingSoon: true },
                 { id: 4, name: "Redes Sociais", uses: "NOVO", bg: "#0f0f1a", studioImg: null, img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80", isSocialVideo: true },
             ];
 
@@ -885,27 +885,43 @@
                                         {templates.map((t) => (
                                             <div
                                                 key={t.id}
-                                                onClick={() => setSelectedTemplate(t.id)}
-                                                className={["group relative bg-surface-container-lowest rounded-xl overflow-hidden border-2 cursor-pointer transition-all hover:shadow-md", selectedTemplate === t.id ? "border-primary" : "border-transparent"].join(' ')}
+                                                onClick={() => !t.comingSoon && setSelectedTemplate(t.id)}
+                                                className={["group relative bg-surface-container-lowest rounded-xl overflow-hidden border-2 transition-all", t.comingSoon ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:shadow-md", selectedTemplate === t.id && !t.comingSoon ? "border-primary" : "border-transparent"].join(' ')}
                                             >
                                                 <div className="aspect-video relative">
-                                                    <img className={["w-full h-full object-cover", t.isVideo ? "opacity-60" : ""].join(' ')} src={t.img} alt={t.name} />
-                                                    <div className={["absolute top-2 right-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full", t.isVideo ? "bg-secondary" : "bg-on-surface/60 backdrop-blur-md"].join(' ')}>
-                                                        {t.uses}
-                                                    </div>
-                                                    {selectedTemplate === t.id && (
+                                                    <img className={["w-full h-full object-cover", t.isVideo || t.comingSoon ? "opacity-60" : ""].join(' ')} src={t.img} alt={t.name} />
+
+                                                    {/* Badge de usos / novo */}
+                                                    {!t.comingSoon && (
+                                                        <div className={["absolute top-2 right-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full", t.isVideo || t.isSocialVideo ? "bg-secondary" : "bg-on-surface/60 backdrop-blur-md"].join(' ')}>
+                                                            {t.uses}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Coming Soon overlay */}
+                                                    {t.comingSoon && (
+                                                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1">
+                                                            <span className="material-symbols-outlined text-white/80 text-2xl">schedule</span>
+                                                            <span className="text-white text-[10px] font-black uppercase tracking-widest">Em breve</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Selected check */}
+                                                    {selectedTemplate === t.id && !t.comingSoon && (
                                                         <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
                                                             <span className="material-symbols-outlined text-primary text-3xl" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
                                                         </div>
                                                     )}
-                                                    {t.isVideo && (
+
+                                                    {/* Video play icon */}
+                                                    {t.isVideo && !t.comingSoon && (
                                                         <div className="absolute inset-0 flex items-center justify-center">
                                                             <span className="material-symbols-outlined text-on-surface text-3xl">play_circle</span>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="p-3">
-                                                    <p className="text-xs font-bold text-on-surface">{t.name}</p>
+                                                    <p className={["text-xs font-bold", t.comingSoon ? "text-slate-400" : "text-on-surface"].join(' ')}>{t.name}</p>
                                                 </div>
                                             </div>
                                         ))}
