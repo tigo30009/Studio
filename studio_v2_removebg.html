@@ -176,6 +176,10 @@
                                         <span className="material-symbols-outlined mr-3 text-[18px]" style={{fontVariationSettings: "'FILL' 1"}}>precision_manufacturing</span>
                                         <span className="hidden lg:block">Estúdio</span>
                                     </Link>
+                                    <Link to="/meus-videos" className={`flex items-center px-3 py-2 text-sm font-medium rounded-md group ${location.pathname === '/meus-videos' ? 'bg-white/10 text-white' : 'hover:bg-white/10 text-slate-400'}`}>
+                                        <span className="material-symbols-outlined mr-3 text-[18px]" style={{fontVariationSettings: "'FILL' 1"}}>video_library</span>
+                                        <span className="hidden lg:block">Meus Vídeos</span>
+                                    </Link>
                                 </div>
                             </div>
                         </nav>
@@ -232,6 +236,10 @@
                                 <Link className={`text-xs py-1.5 flex items-center gap-2 font-bold ${location.pathname === '/studio' ? 'text-primary' : 'hover:text-white'}`} to="/studio">
                                     Estúdio
                                     <span className="bg-primary/20 text-primary text-[8px] px-1 rounded uppercase font-bold">Ativo</span>
+                                </Link>
+                                <Link className={`text-xs py-1.5 flex items-center gap-2 font-bold ${location.pathname === '/meus-videos' ? 'text-[#7c3aed]' : 'hover:text-white'}`} to="/meus-videos">
+                                    Meus Vídeos
+                                    <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>video_library</span>
                                 </Link>
                                 <a className="text-xs py-1.5 hover:text-white" href="#">Relatórios Estoque</a>
                             </div>
