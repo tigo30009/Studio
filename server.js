@@ -189,21 +189,32 @@ app.get('/video-status/:taskId', async (req, res) => {
     if (!apiKey) return res.status(500).json({ error: 'ARK_API_KEY não configurada.' });
 
     const { taskId } = req.params;
+    console.log(`[video-status] Checking task: ${taskId}`);
+
     const response = await fetch(`https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/${taskId}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` },
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
+      console.error(`[video-status] API error ${response.status}:`, JSON.stringify(err));
       return res.status(response.status).json({ error: err.message || 'Erro ao consultar task.' });
     }
 
     const data = await response.json();
-    // status: queued | running | succeeded | failed
-    const status = data.status;
-    const videoUrl = data.content && data.content[0] && data.content[0].video_url && data.content[0].video_url.url;
+    console.log(`[video-status] status=${data.status} content=${JSON.stringify(data.content || []).substring(0, 200)}`);
 
-    res.json({ status, video_url: videoUrl || null, raw: data });
+    const status = data.status;
+    // Try multiple possible response shapes
+    const videoUrl = (
+      (data.content && data.content[0] && data.content[0].video_url && data.content[0].video_url.url) ||
+      (data.content && data.content[0] && data.content[0].url) ||
+      (data.video_url) ||
+      null
+    );
+
+    console.log(`[video-status] resolved video_url=${videoUrl}`);
+    res.json({ status, video_url: videoUrl, raw: data });
   } catch (err) {
     console.error('video-status error:', err);
     res.status(500).json({ error: 'Erro interno: ' + err.message });
