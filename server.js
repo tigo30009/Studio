@@ -164,14 +164,21 @@ app.post('/generate-video', upload.array('images', 20), async (req, res) => {
     const host = req.headers.host || 'studio-xefd.onrender.com';
     const protocol = host.includes('localhost') ? 'http' : 'https';
 
+    console.log(`[generate-video] Processing ${req.files.length} images (API limit: 9)`);
+
+    // Seedance API accepts at most 9 reference images
+    const filesToProcess = req.files.slice(0, 9);
+
     // Save images to /tmp and build public URLs
     const imageUrls = [];
-    for (const file of req.files) {
+    for (const file of filesToProcess) {
       const filename = `vid_${randomUUID()}.jpg`;
       const filepath = path.join(os.tmpdir(), filename);
       fs.writeFileSync(filepath, file.buffer);
       tmpFiles.push(filepath);
-      imageUrls.push(`${protocol}://${host}/tmp/${filename}`);
+      const url = `${protocol}://${host}/tmp/${filename}`;
+      imageUrls.push(url);
+      console.log(`[generate-video] Saved ${filename} (${(file.buffer.length/1024).toFixed(0)}KB)`);
     }
 
     // Build content array: text prompt + reference images
@@ -212,6 +219,7 @@ app.post('/generate-video', upload.array('images', 20), async (req, res) => {
     if (!taskId) return res.status(500).json({ error: 'Task ID não retornado pela API.' });
 
     console.log('Seedance task created:', taskId);
+    console.log('[generate-video] Payload images count:', imageUrls.length);
     res.json({ task_id: taskId });
 
     // Cleanup tmp files after 5 minutes
@@ -247,6 +255,9 @@ app.get('/video-status/:taskId', async (req, res) => {
 
     const data = await response.json();
     console.log(`[video-status] status=${data.status} content=${JSON.stringify(data.content || []).substring(0, 200)}`);
+    if (data.status === 'failed') {
+      console.error('[video-status] FAILED raw data:', JSON.stringify(data).substring(0, 500));
+    }
 
     const status = data.status;
     // API returns content as object {video_url: "..."} or array [{video_url: {...}}]
