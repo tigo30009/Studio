@@ -697,6 +697,20 @@
             const sliderRef = React.useRef(null);
             const isDragging = React.useRef(false);
 
+            const [sliderHeight, setSliderHeight] = React.useState('60vh');
+            React.useEffect(() => {
+                if (!currentPhoto) { setSliderHeight('60vh'); return; }
+                const img = new window.Image();
+                img.onload = () => {
+                    const ratio = img.naturalHeight / img.naturalWidth;
+                    const maxH = window.innerHeight * 0.72;
+                    const containerW = sliderRef.current ? sliderRef.current.offsetWidth : 800;
+                    const h = Math.min(containerW * ratio, maxH);
+                    setSliderHeight(Math.max(h, 280) + 'px');
+                };
+                img.src = currentPhoto.preview;
+            }, [activePhoto, currentPhoto]);
+
             const getSliderPercent = (clientX) => {
                 const rect = sliderRef.current.getBoundingClientRect();
                 const x = clientX - rect.left;
@@ -1042,7 +1056,7 @@
                     <main className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[72px] py-6 md:py-8 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
 
                         {/* ── Left Controls ── */}
-                        <aside className="md:col-span-4 flex flex-col gap-6">
+                        <aside className="md:col-span-3 flex flex-col gap-6">
                             <section>
                                 <h2 className="text-[12px] font-semibold uppercase tracking-widest leading-[140%] mb-4" style={{color:'var(--ds-text-secondary)'}}>Fundos de Estúdio</h2>
                                 <div className="grid grid-cols-2 gap-3">
@@ -1314,21 +1328,21 @@
                         </aside>
 
                         {/* ── Right Preview ── */}
-                        <div className="md:col-span-8 flex flex-col gap-4">
+                        <div className="md:col-span-9 flex flex-col gap-4">
                             <div ref={sliderRef}
-                                className="relative w-full aspect-[16/9] overflow-hidden cursor-ew-resize select-none"
-                                style={{borderRadius:'16px', background:'var(--ds-bg-section)', boxShadow:'var(--shadow-ds-level-2)'}}
+                                className="relative w-full overflow-hidden cursor-ew-resize select-none"
+                                style={{borderRadius:'16px', background:'var(--ds-bg-section)', boxShadow:'var(--shadow-ds-level-2)', height: sliderHeight}}
                                 onMouseDown={handleSliderMouseDown}
                                 onTouchStart={handleSliderTouchStart}>
                                 <div className="absolute inset-0">
-                                    <img className="w-full h-full object-cover" src={beforeSrc} alt="Antes" />
+                                    <img className="w-full h-full object-contain" src={beforeSrc} alt="Antes" style={{background:'var(--ds-bg-section)'}} />
                                     <div className="absolute top-3 left-3 px-3 py-1 text-white text-[10px] font-bold uppercase tracking-widest"
                                         style={{background:'rgba(0,0,0,0.6)', borderRadius:'8px'}}>Antes</div>
                                 </div>
                                 <div className="absolute inset-0 pointer-events-none" style={{clipPath:"inset(0 0 0 " + sliderPos + "%)"}}>
                                     {afterSrc ? (
                                         <div className="absolute inset-0" style={{background: templates[selectedTemplate].bg}}>
-                                            <img src={afterSrc} alt="Depois" className="w-full h-full object-cover" />
+                                            <img src={afterSrc} alt="Depois" className="w-full h-full object-contain" style={{background: templates[selectedTemplate].bg}} />
                                         </div>
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{background: templates[selectedTemplate].bg}}>
