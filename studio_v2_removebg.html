@@ -277,6 +277,7 @@
         const USAGE_KEY = 'wm_studio_usage';
         const LIMITS = { fotos: 100, videos: 20 };
         const getUsage = () => { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{"fotos":0,"videos":0}'); } catch(e) { return {fotos:0, videos:0}; } };
+        const incrementUsage = (type, n = 1) => { try { const u = getUsage(); u[type] = (u[type] || 0) + n; localStorage.setItem(USAGE_KEY, JSON.stringify(u)); } catch(e) {} };
 
         const TopBar = () => {
             const navigate = useNavigate();
@@ -838,6 +839,7 @@
                         const imageUrl = data.data && data.data[0] && data.data[0].url;
                         if (!imageUrl) throw new Error('Bytedance não retornou imagem.');
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
+                        incrementUsage('fotos');
                         setSliderPos(50);
 
                     } else if (template.isBytedance) {
@@ -850,6 +852,7 @@
                         const imageUrl = data.data && data.data[0] && data.data[0].url;
                         if (!imageUrl) throw new Error('Bytedance não retornou imagem.');
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
+                        incrementUsage('fotos');
                         setSliderPos(50);
 
                     } else {
@@ -882,6 +885,7 @@
                             finalUrl = await composeWithBackground(carPngUrl, template.studioImg);
                         }
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: finalUrl }));
+                        incrementUsage('fotos');
                         setSliderPos(50);
                     }
                 } catch (err) {
@@ -920,6 +924,7 @@
                             const imageUrl = data.data && data.data[0] && data.data[0].url;
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
                             setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
+                            incrementUsage('fotos');
                         } else if (template.isBytedance) {
                             const uploadForm = new FormData();
                             uploadForm.append('image', blob, photo.name || 'photo.jpg');
@@ -929,6 +934,7 @@
                             const imageUrl = data.data && data.data[0] && data.data[0].url;
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
                             setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
+                            incrementUsage('fotos');
                         } else {
                             const formData = new FormData();
                             formData.append('image', blob, photo.name || 'photo.jpg');
@@ -939,6 +945,7 @@
                             var finalUrl = carPngUrl;
                             if (template.studioImg) { finalUrl = await composeWithBackground(carPngUrl, template.studioImg); }
                             setProcessedImgs(prev => ({ ...prev, [idx]: finalUrl }));
+                            incrementUsage('fotos');
                         }
                     } catch (err) {
                         setError('Foto ' + (idx+1) + ': ' + err.message);
@@ -1002,9 +1009,9 @@
                                 setVideoStatus('succeeded');
                                 setVideoUrl(statusData.video_url);
                                 clearInterval(videoPollingRef.current);
-                                // Update localStorage
                                 const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'succeeded', video_url: statusData.video_url } : v);
                                 saveVideos(updated);
+                                incrementUsage('videos');
                             } else if (s === 'failed') {
                                 setVideoStatus('failed');
                                 setError('Falha na geração do vídeo pela API.');
@@ -1329,7 +1336,86 @@
 
                         {/* ── Right Preview ── */}
                         <div className="md:col-span-9 flex flex-col gap-4">
-                            <div ref={sliderRef}
+
+                            {templates[selectedTemplate].isSocialVideo ? (
+                                /* ── Painel de vídeo grande ── */
+                                <div className="flex flex-col gap-4">
+                                    {videoStatus === null && (
+                                        <div className="w-full flex flex-col items-center justify-center gap-4 rounded-[16px]"
+                                            style={{background:'var(--ds-bg-section)', boxShadow:'var(--shadow-ds-level-2)', height: sliderHeight || '60vh', minHeight:320}}>
+                                            <span className="material-symbols-outlined text-[64px]" style={{color:'var(--ds-neutral-high-medium)'}}>movie</span>
+                                            <p className="text-[14px] font-semibold leading-[130%]" style={{color:'var(--ds-text-secondary)'}}>
+                                                Clique em "Gerar Vídeo" para criar seu vídeo para redes sociais
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {videoStatus === 'generating' && (
+                                        <div className="w-full flex flex-col items-center justify-center gap-4 rounded-[16px]"
+                                            style={{background:'var(--ds-bg-section)', boxShadow:'var(--shadow-ds-level-2)', height: sliderHeight || '60vh', minHeight:320}}>
+                                            <svg className="animate-spin h-12 w-12" style={{color:'var(--ds-brand-complementary)'}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            <div className="text-center">
+                                                <p className="text-[16px] font-bold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Gerando vídeo...</p>
+                                                <p className="text-[13px] leading-[140%] mt-1" style={{color:'var(--ds-text-secondary)'}}>Pode levar até 2 minutos. Você pode fechar e voltar depois em Meus Vídeos.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {videoStatus === 'succeeded' && videoUrl && (
+                                        <div className="flex flex-col gap-3">
+                                            <video src={videoUrl} controls autoPlay className="w-full"
+                                                style={{borderRadius:'16px', boxShadow:'var(--shadow-ds-level-2)', background:'#000', maxHeight:'72vh'}} />
+                                            <div className="flex gap-3">
+                                                <a href={'https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(videoUrl)}
+                                                    download="video_redes_sociais.mp4"
+                                                    className="flex-1 h-12 flex items-center justify-center gap-2 text-white text-[14px] font-semibold rounded-[8px] transition-all hover:opacity-90"
+                                                    style={{background:'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                                                    <span className="material-symbols-outlined text-[18px]">download</span>
+                                                    Baixar vídeo
+                                                </a>
+                                                <button onClick={() => navigate('/meus-videos')}
+                                                    className="h-12 px-5 flex items-center justify-center gap-2 text-[14px] font-semibold rounded-[8px] transition-all hover:opacity-90"
+                                                    style={{border:'1px solid var(--ds-border-default)', color:'var(--ds-brand-complementary)', background:'var(--ds-bg-card)'}}>
+                                                    <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>video_library</span>
+                                                    Meus Vídeos
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {videoStatus === 'failed' && (
+                                        <div className="w-full flex flex-col items-center justify-center gap-3 rounded-[16px]"
+                                            style={{background:'rgba(226,36,70,0.04)', border:'1px solid rgba(226,36,70,0.2)', height: sliderHeight || '60vh', minHeight:320}}>
+                                            <span className="material-symbols-outlined text-[48px]" style={{color:'var(--ds-brand-primary)'}}>error_outline</span>
+                                            <p className="text-[14px] font-semibold leading-[130%]" style={{color:'var(--ds-brand-primary)'}}>Falha na geração do vídeo</p>
+                                            <p className="text-[12px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Tente novamente ou verifique os logs.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Filmstrip sempre visível */}
+                                    <div>
+                                        <h3 className="text-[10px] font-semibold uppercase tracking-widest leading-[140%] mb-3 px-1" style={{color:'var(--ds-text-secondary)'}}>
+                                            Fotos no vídeo ({photos.length})
+                                        </h3>
+                                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                            {photos.map((photo, i) => (
+                                                <div key={i} className="relative flex-shrink-0 w-24 md:w-28"
+                                                    style={{aspectRatio:'3/2', borderRadius:'8px', overflow:'hidden', border:'2px solid transparent', opacity:0.8}}>
+                                                    <img className="w-full h-full object-cover" src={photo.preview} alt={"Foto " + (i+1)} />
+                                                    <div className="absolute bottom-1 left-1 text-white text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                                        style={{background:'rgba(0,0,0,0.6)'}}>{i+1}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* ── Preview ANTES/DEPOIS normal ── */
+                                <React.Fragment>
+                                <div ref={sliderRef}
                                 className="relative w-full overflow-hidden cursor-ew-resize select-none"
                                 style={{borderRadius:'16px', background:'var(--ds-bg-section)', boxShadow:'var(--shadow-ds-level-2)', height: sliderHeight}}
                                 onMouseDown={handleSliderMouseDown}
@@ -1370,34 +1456,36 @@
                             </div>
 
                             {/* Filmstrip */}
-                            <div>
-                                <h3 className="text-[10px] font-semibold uppercase tracking-widest leading-[140%] mb-3 px-1" style={{color:'var(--ds-text-secondary)'}}>
-                                    Imagens ({filmstripPhotos.length})
-                                    {Object.keys(processedImgs).length > 0 && (
-                                        <span className="ml-2" style={{color:'var(--ds-brand-primary)'}}>
-                                            {Object.keys(processedImgs).length} processada{Object.keys(processedImgs).length > 1 ? "s" : ""}
-                                        </span>
-                                    )}
-                                </h3>
-                                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                                    {filmstripPhotos.map((photo, i) => (
-                                        <div key={i}
-                                            onClick={() => { setActivePhoto(i); setSliderPos(50); }}
-                                            className="relative flex-shrink-0 w-24 md:w-28 cursor-pointer transition-all"
-                                            style={{aspectRatio:'3/2', borderRadius:'8px', overflow:'hidden',
-                                                border: i === activePhoto ? '2px solid var(--ds-brand-primary)' : '2px solid transparent',
-                                                opacity: i === activePhoto ? 1 : 0.65,
-                                                boxShadow: i === activePhoto ? 'var(--shadow-ds-level-2)' : 'none'}}>
-                                            <img className="w-full h-full object-cover" src={photo.preview} alt={"Foto " + (i+1)} />
-                                            {processedImgs[i] && (
-                                                <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full flex items-center justify-center wm-gradient">
-                                                    <span className="material-symbols-outlined text-white text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                <div>
+                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest leading-[140%] mb-3 px-1" style={{color:'var(--ds-text-secondary)'}}>
+                                        Imagens ({filmstripPhotos.length})
+                                        {Object.keys(processedImgs).length > 0 && (
+                                            <span className="ml-2" style={{color:'var(--ds-brand-primary)'}}>
+                                                {Object.keys(processedImgs).length} processada{Object.keys(processedImgs).length > 1 ? "s" : ""}
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                        {filmstripPhotos.map((photo, i) => (
+                                            <div key={i}
+                                                onClick={() => { setActivePhoto(i); setSliderPos(50); }}
+                                                className="relative flex-shrink-0 w-24 md:w-28 cursor-pointer transition-all"
+                                                style={{aspectRatio:'3/2', borderRadius:'8px', overflow:'hidden',
+                                                    border: i === activePhoto ? '2px solid var(--ds-brand-primary)' : '2px solid transparent',
+                                                    opacity: i === activePhoto ? 1 : 0.65,
+                                                    boxShadow: i === activePhoto ? 'var(--shadow-ds-level-2)' : 'none'}}>
+                                                <img className="w-full h-full object-cover" src={photo.preview} alt={"Foto " + (i+1)} />
+                                                {processedImgs[i] && (
+                                                    <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full flex items-center justify-center wm-gradient">
+                                                        <span className="material-symbols-outlined text-white text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            </React.Fragment>
+                            )}
                         </div>
                     </main>
 
@@ -1990,6 +2078,7 @@
                         const data = await res.json();
                         if (data.status === 'succeeded' && data.video_url) {
                             updateVideo(taskId, { status: 'succeeded', video_url: data.video_url });
+                            incrementUsage('videos');
                             clearInterval(pollingRefs.current[taskId]);
                             delete pollingRefs.current[taskId];
                         } else if (data.status === 'failed') {
