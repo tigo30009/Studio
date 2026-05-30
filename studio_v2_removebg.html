@@ -87,46 +87,55 @@
       }
     </script>
     <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .signature-gradient {
-            background: linear-gradient(135deg, #E22446 0%, #BC0032 100%);
-        }
-        .sidebar-dark {
-            background-color: #1a1b26;
-        }
-        /* DS Webmotors Tokens */
+        /* ── DS Webmotors Tokens ───────────────────────── */
         :root {
-            --ds-bg-page: #F7F7F9;
-            --ds-bg-card: #FFFFFF;
+            --ds-brand-primary: #E22446;
+            --ds-brand-primary-dark: #AB0B33;
+            --ds-brand-primary-lighter: #F9B6B8;
+            --ds-brand-complementary: #5B588F;
+            --ds-brand-complementary-dark: #41408F;
             --ds-text-primary: #43534;
             --ds-text-secondary: #4A4B77;
             --ds-text-disabled: #8B8C12;
             --ds-text-emphasys: #E22446;
             --ds-text-complementary: #5B588F;
-            --ds-border-default: #DCDDB8;
+            --ds-text-inverse: #F7F7F9;
+            --ds-bg-page: #F7F7F9;
+            --ds-bg-section: #E1E1F9;
+            --ds-bg-card: #FFFFFF;
+            --ds-bg-emphasys: #E22446;
+            --ds-bg-footer: #2F2F32;
+            --ds-border-default: #DCDDE9;
             --ds-border-card: #F7F7F9;
+            --ds-border-selected: #E22446;
+            --ds-neutral-low-darker: #2F2F32;
+            --ds-neutral-high-lighter: #F7F7F9;
             --ds-neutral-high-medium: #BEBEBF;
             --shadow-ds-level-1: 0 8px 8px rgba(106,105,119,0.08);
             --shadow-ds-level-2: 0 8px 16px rgba(106,105,119,0.16);
             --shadow-ds-level-3: 0 8px 24px rgba(106,105,119,0.24);
+            --shadow-ds-level-4: 0 12px 24px rgba(106,105,119,0.32);
+            --shadow-ds-level-5: 0 16px 40px rgba(106,105,119,0.40);
         }
-        .scrollbar-none { scrollbar-width: none; }
-        .scrollbar-none::-webkit-scrollbar { display: none; }
-        .before-after-slider {
-            position: relative;
-            overflow: hidden;
+        /* ── Global ────────────────────────────────────── */
+        * { box-sizing: border-box; }
+        body { background: var(--ds-bg-page); font-family: 'Figtree', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        .after-image {
-            clip-path: inset(0 0 0 50%); /* Start at 50% */
+        /* ── Brand gradient ─────────────────────────────── */
+        .wm-gradient {
+            background: linear-gradient(135deg, #E22446 0%, #AB0B33 100%);
         }
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        /* ── Scrollbar hide ─────────────────────────────── */
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        /* ── Before/after slider ────────────────────────── */
+        .before-after-slider { position: relative; overflow: hidden; }
+        .after-image { clip-path: inset(0 0 0 50%); }
+        /* ── Mobile bottom nav safe area ────────────────── */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .safe-bottom { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
         }
     </style>
 </head>
@@ -369,28 +378,33 @@
             const remaining = MAX_PHOTOS - photos.length;
 
             return (
-                <div className="flex flex-1">
-                    <Sidebar className="hidden md:flex" />
+                <div className="flex min-h-screen" style={{background: 'var(--ds-bg-page)'}}>
+                    {/* Sidebar — hidden on mobile */}
+                    <div className="hidden md:flex">
+                        <Sidebar className="hidden md:flex" />
+                    </div>
+
                     <div className="flex-1 flex flex-col min-w-0">
                         <TopBar />
-                        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 max-w-[1200px] mx-auto w-full">
 
-                            {/* Stepper */}
-                            <div className="flex items-center justify-center mb-16 gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full signature-gradient flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-primary/20">1</div>
-                                    <span className="hidden sm:inline text-sm font-bold text-on-surface uppercase tracking-wider">UPLOAD</span>
-                                </div>
-                                <div className="w-16 h-[2px] bg-outline-variant/30"></div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface text-xs font-bold">2</div>
-                                    <span className="hidden sm:inline text-sm font-bold text-outline uppercase tracking-wider">ESTÚDIO</span>
-                                </div>
-                                <div className="w-16 h-[2px] bg-outline-variant/30"></div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface text-xs font-bold">3</div>
-                                    <span className="hidden sm:inline text-sm font-bold text-outline uppercase tracking-wider">DOWNLOAD</span>
-                                </div>
+                        <main className="flex-1 overflow-y-auto w-full max-w-[1440px] mx-auto px-4 md:px-8 lg:px-[72px] py-6 md:py-8">
+
+                            {/* Stepper DS */}
+                            <div className="flex items-center justify-center mb-8 md:mb-12 gap-3 md:gap-4">
+                                {[{n:1,label:'Upload',active:true},{n:2,label:'Estúdio',active:false},{n:3,label:'Download',active:false}].map((s, idx) => (
+                                    <React.Fragment key={s.n}>
+                                        <div className="flex items-center gap-2">
+                                            <div className={[
+                                                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold leading-[140%] transition-all",
+                                                s.active ? "wm-gradient text-white shadow-[0_8px_8px_rgba(106,105,119,0.08)]" : "text-[#2F2F32]"
+                                            ].join(' ')} style={!s.active ? {background:'var(--ds-bg-section)'} : {}}>
+                                                {s.active ? <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span> : s.n}
+                                            </div>
+                                            <span className={["hidden sm:inline text-[12px] font-semibold uppercase tracking-widest leading-[140%]", s.active ? "text-[#E22446]" : "text-[#4A4B77]"].join(' ')}>{s.label}</span>
+                                        </div>
+                                        {idx < 2 && <div className="w-10 md:w-16 h-[2px] rounded-full" style={{background:'var(--ds-border-default)'}}></div>}
+                                    </React.Fragment>
+                                ))}
                             </div>
 
                             {/* Drop Zone */}
@@ -400,93 +414,113 @@
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
                                     onClick={() => !isFull && fileInputRef.current.click()}
-                                    className={[
-                                        "bg-surface-container-lowest rounded-xl p-6 md:p-12 flex flex-col items-center justify-center border-2 border-dashed transition-all duration-300 shadow-[0_8px_32px_-4px_rgba(106,105,119,0.05)]",
-                                        isFull ? "border-outline-variant/30 opacity-60 cursor-not-allowed" :
-                                        isDragging ? "border-primary bg-primary-fixed/30 cursor-copy scale-[1.01]" :
-                                        "border-outline-variant/50 hover:border-primary/40 cursor-pointer group"
-                                    ].join(' ')}
+                                    className={["rounded-[16px] p-8 md:p-12 flex flex-col items-center justify-center border-2 border-dashed transition-all duration-300", isFull ? "opacity-60 cursor-not-allowed" : isDragging ? "cursor-copy scale-[1.01]" : "cursor-pointer"].join(' ')}
+                                    style={{
+                                        background: isDragging ? 'rgba(226,36,70,0.04)' : 'var(--ds-bg-card)',
+                                        borderColor: isDragging ? 'var(--ds-brand-primary)' : isFull ? 'var(--ds-border-default)' : 'var(--ds-border-default)',
+                                        boxShadow: 'var(--shadow-ds-level-1)'
+                                    }}
                                 >
                                     <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => processFiles(e.target.files)} />
-                                    <div className={["w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-300", isDragging ? "bg-primary-fixed" : "bg-surface-container-low group-hover:bg-primary-fixed"].join(' ')}>
-                                        <span className="material-symbols-outlined text-primary text-4xl" style={{fontVariationSettings: "'FILL' 1"}}>
+
+                                    {/* Icon */}
+                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-6 transition-all"
+                                        style={{background: isDragging ? 'rgba(226,36,70,0.1)' : 'var(--ds-bg-page)'}}>
+                                        <span className="material-symbols-outlined text-3xl md:text-4xl" style={{color:'var(--ds-brand-primary)', fontVariationSettings:"'FILL' 1"}}>
                                             {isDragging ? "download" : "cloud_upload"}
                                         </span>
                                     </div>
-                                    <h2 className="text-[20px] md:text-2xl font-bold mb-2 text-on-surface text-center">
+
+                                    <h2 className="text-[20px] font-bold mb-2 text-center leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>
                                         {isDragging ? "Solte as fotos aqui" : "Adicionar fotos do veículo"}
                                     </h2>
-                                    <p className="text-slate-500 mb-6 max-w-md text-center leading-relaxed">
-                                        Arraste e solte ou clique para selecionar. Máximo de <strong className="text-on-surface">{MAX_PHOTOS} fotos</strong> por sessão.
+                                    <p className="text-[14px] leading-[140%] mb-6 max-w-sm text-center" style={{color:'var(--ds-text-secondary)'}}>
+                                        Arraste e solte ou clique para selecionar. Máximo de <strong style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>{MAX_PHOTOS} fotos</strong> por sessão.
                                     </p>
-                                    {/* Progress dots */}
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="flex gap-1">
-                                            {Array.from({length: MAX_PHOTOS}).map((_, i) => (
-                                                <div key={i} className={["h-1.5 w-3 rounded-full transition-all", i < photos.length ? "bg-primary" : "bg-slate-200"].join(' ')}></div>
-                                            ))}
+
+                                    {/* Progress bar DS */}
+                                    <div className="w-full max-w-xs mb-6">
+                                        <div className="flex justify-between mb-2">
+                                            <span className="text-[12px] font-semibold leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Fotos adicionadas</span>
+                                            <span className="text-[12px] font-semibold leading-[140%]" style={{color: isFull ? 'var(--ds-brand-primary)' : 'var(--ds-text-secondary)'}}>{photos.length}/{MAX_PHOTOS}</span>
                                         </div>
-                                        <span className={["text-xs font-bold", isFull ? "text-error" : "text-slate-400"].join(' ')}>
-                                            {photos.length}/{MAX_PHOTOS}
-                                        </span>
+                                        <div className="h-2 rounded-[4px] w-full" style={{background:'var(--ds-bg-page)'}}>
+                                            <div className="h-2 rounded-[4px] transition-all duration-500 wm-gradient" style={{width: (photos.length / MAX_PHOTOS * 100) + '%'}}></div>
+                                        </div>
                                     </div>
+
+                                    {/* CTA Button DS */}
                                     {!isFull ? (
-                                        <button className="px-8 h-12 rounded-lg bg-surface-container-highest text-on-surface font-semibold hover:bg-surface-dim active:scale-95 transition-all duration-300">
+                                        <button className="h-12 px-6 rounded-[8px] text-[16px] font-semibold leading-[130%] transition-all hover:opacity-90 active:scale-[0.98]"
+                                            style={{background:'var(--ds-bg-page)', color:'var(--ds-neutral-low-darker, #2F2F32)', border:'1px solid var(--ds-border-default)'}}>
                                             Escolher fotos
                                         </button>
                                     ) : (
-                                        <div className="px-6 h-10 rounded-lg bg-error/10 text-error text-sm font-semibold flex items-center gap-2">
+                                        <div className="h-12 px-6 rounded-[8px] text-[14px] font-semibold flex items-center gap-2"
+                                            style={{background:'rgba(226,36,70,0.08)', color:'var(--ds-brand-primary)'}}>
                                             <span className="material-symbols-outlined text-[18px]">block</span>
-                                            Limite atingido — remova fotos para adicionar novas
+                                            Limite atingido
                                         </div>
                                     )}
-                                    <div className="mt-4 flex gap-4 text-[10px] font-bold text-outline uppercase tracking-widest">
+
+                                    <div className="mt-4 flex gap-4 text-[10px] font-semibold uppercase tracking-widest leading-[140%]" style={{color:'var(--ds-neutral-high-medium)'}}>
                                         <span>JPG</span><span>PNG</span><span>WEBP</span>
                                     </div>
                                 </div>
                             </section>
 
-                            {/* Error alert */}
+                            {/* Error alert DS */}
                             {error && (
-                                <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-error-container text-on-error-container rounded-lg text-sm font-medium">
-                                    <span className="material-symbols-outlined text-[18px]">warning</span>
+                                <div className="mb-6 flex items-center gap-3 rounded-[8px] px-4 py-4 text-[14px] font-medium leading-[140%]"
+                                    style={{background:'rgba(226,36,70,0.08)', color:'var(--ds-brand-primary)', border:'1px solid rgba(226,36,70,0.2)'}}>
+                                    <span className="material-symbols-outlined text-[18px] flex-shrink-0">warning</span>
                                     {error}
                                 </div>
                             )}
 
                             {/* Photo grid */}
                             {photos.length > 0 && (
-                                <section>
-                                    <div className="flex items-end justify-between mb-6">
+                                <section className="mt-8">
+                                    <div className="flex items-end justify-between mb-4 md:mb-6">
                                         <div>
-                                            <h3 className="text-2xl font-black tracking-tighter uppercase mb-1">A COLEÇÃO</h3>
-                                            <p className="text-slate-500 font-medium">
+                                            <h3 className="text-[20px] font-bold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>
                                                 {photos.length} {photos.length === 1 ? "imagem adicionada" : "imagens adicionadas"}
-                                                {remaining > 0 && <span className="text-slate-400"> · ainda {remaining} disponível{remaining > 1 ? "is" : ""}</span>}
-                                            </p>
+                                            </h3>
+                                            {remaining > 0 && (
+                                                <p className="text-[14px] leading-[140%] mt-1" style={{color:'var(--ds-text-secondary)'}}>
+                                                    Ainda {remaining} disponível{remaining > 1 ? "is" : ""}
+                                                </p>
+                                            )}
                                         </div>
-                                        <button onClick={() => { setPhotos([]); setError(''); }} className="text-xs text-slate-400 hover:text-error transition-colors font-medium flex items-center gap-1">
+                                        <button onClick={() => { setPhotos([]); setError(''); }}
+                                            className="text-[12px] font-semibold flex items-center gap-1 h-8 px-3 rounded-[8px] transition-all hover:opacity-80"
+                                            style={{color:'var(--ds-brand-primary)'}}>
                                             <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
-                                            Remover todas
+                                            <span className="hidden sm:inline">Remover todas</span>
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+
+                                    {/* Grid — 2 cols mobile, 4 cols desktop */}
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                                         {photos.map((photo) => (
-                                            <div key={photo.id} className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm group">
+                                            <div key={photo.id} className="rounded-[12px] overflow-hidden group" style={{background:'var(--ds-bg-card)', boxShadow:'var(--shadow-ds-level-1)'}}>
                                                 <div className="relative aspect-[4/3] overflow-hidden">
                                                     <img alt={photo.name} src={photo.preview} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-3">
-                                                        <button onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }} className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-error shadow-lg hover:bg-white transition-colors">
-                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                    {/* Delete overlay */}
+                                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-2 md:p-3">
+                                                        <button onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
+                                                            className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-colors"
+                                                            style={{background:'rgba(255,255,255,0.95)', color:'var(--ds-brand-primary)'}}>
+                                                            <span className="material-symbols-outlined text-[16px]">delete</span>
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div className="p-4 flex justify-between items-center">
+                                                <div className="p-3 flex justify-between items-center">
                                                     <div className="flex flex-col min-w-0">
-                                                        <span className="text-xs font-bold text-on-surface truncate">{photo.name}</span>
-                                                        <span className="text-xs text-slate-400">{photo.size}</span>
+                                                        <span className="text-[12px] font-semibold leading-[140%] truncate" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>{photo.name}</span>
+                                                        <span className="text-[10px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>{photo.size}</span>
                                                     </div>
-                                                    <span className="material-symbols-outlined text-primary text-sm shrink-0 ml-2" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
+                                                    <span className="material-symbols-outlined text-[18px] shrink-0 ml-2" style={{color:'var(--ds-brand-primary)', fontVariationSettings:"'FILL' 1"}}>check_circle</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -494,11 +528,13 @@
                                 </section>
                             )}
 
-                            <div className="mt-8 md:mt-16 flex justify-end">
+                            {/* CTA continuar — sticky no mobile */}
+                            <div className="mt-8 md:mt-12 pb-6 flex justify-end sticky bottom-4 md:static">
                                 <button
                                     onClick={() => { if (photos.length > 0) { window.__studioStore.photos = photos; window.__studioStore.processedImgs = {}; navigate('/studio'); } }}
                                     disabled={photos.length === 0}
-                                    className={["h-11 px-8 rounded-md text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all", photos.length > 0 ? "bg-[#bc0032] hover:bg-[#920025] cursor-pointer" : "bg-slate-300 cursor-not-allowed"].join(' ')}
+                                    className={["h-12 px-6 md:px-8 rounded-[8px] text-[16px] font-semibold leading-[130%] text-white flex items-center justify-center gap-2 transition-all w-full md:w-auto", photos.length > 0 ? "wm-gradient hover:opacity-90 active:scale-[0.98] shadow-[0_8px_16px_rgba(226,36,70,0.24)]" : "cursor-not-allowed opacity-40"].join(' ')}
+                                    style={photos.length === 0 ? {background:'var(--ds-neutral-high-medium)'} : {}}
                                 >
                                     Continuar para o Estúdio
                                     <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
