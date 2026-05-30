@@ -1573,14 +1573,16 @@
 
             if (publicado) {
                 return (
-                    <div className="flex min-h-screen items-center justify-center" style={{backgroundColor:"var(--ds-bg-page)"}}>
+                    <div className="min-h-screen flex items-center justify-center" style={{background:'var(--ds-bg-page)'}}>
                         <div className="text-center p-8">
-                            <div className="w-20 h-20 rounded-full signature-gradient flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/30">
+                            <div className="w-20 h-20 rounded-full wm-gradient flex items-center justify-center mx-auto mb-6" style={{boxShadow:'0 16px 40px rgba(226,36,70,0.30)'}}>
                                 <span className="material-symbols-outlined text-white text-4xl" style={{fontVariationSettings:"'FILL' 1"}}>check_circle</span>
                             </div>
-                            <h2 className="text-[24px] font-bold mb-2" style={{color:"var(--ds-text-primary)",lineHeight:"120%"}}>Anúncio publicado!</h2>
-                            <p className="mb-8" style={{color:"var(--ds-text-secondary)",fontSize:16,lineHeight:"130%"}}>Seu anúncio foi enviado com sucesso e está em revisão.</p>
-                            <button onClick={() => navigate('/')} className="h-12 px-8 signature-gradient text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all">
+                            <h2 className="text-[24px] font-bold mb-2 leading-[120%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Anúncio publicado!</h2>
+                            <p className="mb-8 text-[16px] leading-[130%]" style={{color:'var(--ds-text-secondary)'}}>Seu anúncio foi enviado com sucesso e está em revisão.</p>
+                            <button onClick={() => navigate('/')}
+                                className="h-12 px-8 wm-gradient text-white text-[16px] font-semibold rounded-[8px] transition-all hover:opacity-90"
+                                style={{boxShadow:'0 8px 16px rgba(226,36,70,0.24)'}}>
                                 Novo anúncio
                             </button>
                         </div>
@@ -1589,209 +1591,220 @@
             }
 
             return (
-                <div className="flex min-h-screen" style={{backgroundColor:"var(--ds-bg-page)"}}>
-                    
-                    <div className="flex-1 flex flex-col">
-                        <TopBar />
-                        {/* Stepper */}
-                        <div className="flex items-center justify-center py-6 gap-4">
-                            {['Upload','Estúdio','Anúncio'].map((s, i) => (
-                                <React.Fragment key={s}>
-                                    {i > 0 && <div className="w-12 h-[2px] bg-primary/40"></div>}
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-full signature-gradient flex items-center justify-center text-white shadow-sm">
-                                            {i < 2 ? <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span> : <span className="text-xs font-bold">3</span>}
-                                        </div>
-                                        <span className="hidden sm:inline text-xs font-bold text-primary uppercase tracking-wider">{s}</span>
-                                    </div>
-                                </React.Fragment>
-                            ))}
-                        </div>
+                <div className="min-h-screen" style={{background:'var(--ds-bg-page)'}}>
+                    <TopBar />
 
-                        {/* Preview banner */}
-                        <div className="max-w-[900px] mx-auto w-full px-4 md:px-6 mb-4">
-                            <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
-                                <span className="material-symbols-outlined text-amber-500 text-[20px]" style={{fontVariationSettings:"'FILL' 1"}}>visibility</span>
-                                <div className="flex-1">
-                                    <p className="text-xs font-black text-amber-700 uppercase tracking-wider">Preview do anúncio</p>
-                                    <p className="text-xs text-amber-600">Revise e edite as informações antes de publicar. Clique em qualquer campo para alterar.</p>
+                    {/* Stepper DS */}
+                    <div className="flex items-center justify-center py-4 md:py-5 gap-3 md:gap-4" style={{borderBottom:'1px solid var(--ds-border-default)', background:'var(--ds-bg-card)'}}>
+                        {[{n:1,label:'Upload',done:true},{n:2,label:'Estúdio',done:true},{n:3,label:'Anúncio',active:true}].map((s, idx) => (
+                            <React.Fragment key={s.n}>
+                                <div className="flex items-center gap-2">
+                                    <div className={["w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold", s.done || s.active ? "wm-gradient text-white" : "text-[#2F2F32]"].join(' ')}
+                                        style={!s.done && !s.active ? {background:'var(--ds-bg-section)'} : {}}>
+                                        {s.done ? <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>check</span> : s.n}
+                                    </div>
+                                    <span className={["hidden sm:inline text-[12px] font-semibold uppercase tracking-widest", s.done || s.active ? "text-[#E22446]" : "text-[#4A4B77]"].join(' ')}>{s.label}</span>
                                 </div>
+                                {idx < 2 && <div className="w-10 md:w-16 h-[2px] rounded-full" style={{background:'var(--ds-border-default)'}}></div>}
+                            </React.Fragment>
+                        ))}
+                    </div>
+
+                    {/* Banner preview DS — alert warning */}
+                    <div className="max-w-[900px] mx-auto w-full px-4 md:px-8 lg:px-[72px] pt-6 mb-4">
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-[8px]"
+                            style={{background:'rgba(255,193,7,0.08)', border:'1px solid rgba(255,193,7,0.3)'}}>
+                            <span className="material-symbols-outlined text-[20px] flex-shrink-0" style={{color:'rgba(255,193,7,1)', fontVariationSettings:"'FILL' 1"}}>visibility</span>
+                            <div>
+                                <p className="text-[12px] font-semibold uppercase tracking-wider leading-[140%]" style={{color:'#856404'}}>Preview do anúncio</p>
+                                <p className="text-[12px] leading-[140%]" style={{color:'#856404'}}>Revise e edite as informações antes de publicar. Clique em qualquer campo para alterar.</p>
                             </div>
                         </div>
+                    </div>
 
-                        <main className="max-w-[900px] mx-auto w-full px-4 md:px-6 pb-16 space-y-4">
+                    <main className="max-w-[900px] mx-auto w-full px-4 md:px-8 lg:px-[72px] pb-16 flex flex-col gap-4">
 
-                            {/* Photo carousel */}
-                            {allImgs.length > 0 && (
-                                <div>
-                                    <div className="relative bg-surface-container-lowest rounded-2xl overflow-hidden aspect-[16/9] mb-3">
-                                        <img src={allImgs[activeImg]} className="w-full h-full object-contain" alt="Foto do veículo" />
-                                        {allImgs.length > 1 && (
-                                            <React.Fragment>
-                                                <button onClick={() => setActiveImg(i => Math.max(0, i-1))} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-all">
-                                                    <span className="material-symbols-outlined text-on-surface text-lg">chevron_left</span>
-                                                </button>
-                                                <button onClick={() => setActiveImg(i => Math.min(allImgs.length-1, i+1))} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-all">
-                                                    <span className="material-symbols-outlined text-on-surface text-lg">chevron_right</span>
-                                                </button>
-                                                <div className="absolute bottom-3 right-3 bg-on-surface/70 text-white text-xs font-bold px-2 py-1 rounded-full backdrop-blur-sm">{activeImg+1}/{allImgs.length}</div>
-                                            </React.Fragment>
-                                        )}
-                                    </div>
+                        {/* Carrossel de fotos DS */}
+                        {allImgs.length > 0 && (
+                            <div>
+                                <div className="relative overflow-hidden aspect-[16/9] mb-3" style={{borderRadius:'16px', background:'var(--ds-bg-section)', boxShadow:'var(--shadow-ds-level-2)'}}>
+                                    <img src={allImgs[activeImg]} className="w-full h-full object-contain" style={{background:'var(--ds-bg-card)'}} alt="Foto do veículo" />
                                     {allImgs.length > 1 && (
-                                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                                            {allImgs.map((img, i) => (
-                                                <div key={i} onClick={() => setActiveImg(i)} className={["flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden cursor-pointer border-2 transition-all", i === activeImg ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"].join(' ')}>
-                                                    <img src={img} className="w-full h-full object-cover" alt={"Foto " + (i+1)} />
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <React.Fragment>
+                                            <button onClick={() => setActiveImg(i => Math.max(0, i-1))}
+                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105"
+                                                style={{background:'rgba(255,255,255,0.92)', boxShadow:'var(--shadow-ds-level-2)'}}>
+                                                <span className="material-symbols-outlined text-[18px]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>chevron_left</span>
+                                            </button>
+                                            <button onClick={() => setActiveImg(i => Math.min(allImgs.length-1, i+1))}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105"
+                                                style={{background:'rgba(255,255,255,0.92)', boxShadow:'var(--shadow-ds-level-2)'}}>
+                                                <span className="material-symbols-outlined text-[18px]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>chevron_right</span>
+                                            </button>
+                                            <div className="absolute bottom-3 right-3 text-white text-[10px] font-bold px-2 py-1 rounded-full"
+                                                style={{background:'rgba(0,0,0,0.6)'}}>
+                                                {activeImg+1}/{allImgs.length}
+                                            </div>
+                                        </React.Fragment>
                                     )}
                                 </div>
-                            )}
-
-                            {/* Titulo e preço */}
-                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                <div className="flex items-start gap-4 mb-1 flex-wrap">
-                                    <input
-                                        value={form.titulo}
-                                        onChange={set('titulo')}
-                                        className="text-[20px] font-bold flex-1 border-b-2 border-dashed outline-none bg-transparent pb-1 transition-colors" style={{color:"var(--ds-text-emphasys)",borderColor:"var(--ds-border-default)",lineHeight:"130%"}}
-                                    />
-                                </div>
-                                {vehicle && <p className="text-[14px] mb-4" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>{vehicle.versao}</p>}
-                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[16px] text-slate-400" style={{fontVariationSettings:"'FILL' 1"}}>location_on</span>
-                                        <input value={form.cidade} onChange={set('cidade')} className="text-[14px] border-b border-dashed outline-none bg-transparent" style={{color:"var(--ds-text-secondary)",borderColor:"var(--ds-border-default)",lineHeight:"140%"}} />
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="flex items-center gap-2 justify-end mb-1">
-                                            <span className="text-[10px] font-bold text-secondary uppercase tracking-wider bg-secondary/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>stars</span>
-                                                Valor sugerido
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-1 justify-end">
-                                            <span className="text-lg font-black text-on-surface">R$</span>
-                                            <input value={form.preco} onChange={set('preco')} className="text-[24px] font-bold w-36 border-b-2 border-dashed outline-none bg-transparent text-right" style={{color:"var(--ds-text-primary)",borderColor:"var(--ds-border-default)",lineHeight:"120%"}} />
-                                        </div>
-                                        <p className="text-[10px] mt-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>Clique para editar o valor</p>
-                                        {vehicle && vehicle.precoMin && vehicle.precoMax && (
-                                            <p className="text-[10px] text-slate-400 mt-0.5">
-                                                Faixa IWM: R$ {vehicle.precoMin} – R$ {vehicle.precoMax}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Dados do veículo */}
-                            {vehicle && (
-                                <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                    <div className="flex items-center justify-between mb-5">
-                                        <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Dados do Veículo</h3>
-                                        {vehicle.placa && (
-                                            <span className="flex items-center gap-1.5 text-[12px] font-semibold px-3 rounded-full" style={{color:"var(--ds-text-complementary)",backgroundColor:"rgba(91,88,143,0.1)",height:24,lineHeight:"130%"}}>
-                                                <span className="material-symbols-outlined text-[14px]" style={{fontVariationSettings:"'FILL' 1"}}>id_card</span>
-                                                Placa {vehicle.placa} · Final {form.finalPlaca}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4">
-                                        {[
-                                            ['Ano', 'ano', 'calendar_month'],
-                                            ['KM', 'km', 'speed'],
-                                            ['Câmbio', 'cambio', 'settings'],
-                                            ['Carroceria', 'carroceria', 'directions_car'],
-                                            ['Cor', 'cor', 'palette'],
-                                            ['Combustível', 'combustivel', 'local_gas_station'],
-                                            ['Portas', 'portas', 'sensor_door'],
-                                            ['Blindado', 'blindado', 'shield'],
-                                        ].map(([label, key, icon]) => (
-                                            <div key={key} className="flex items-start gap-2">
-                                                <span className="material-symbols-outlined text-[16px] mt-0.5" style={{color:"#BEBEBF"}}>{icon}</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>{label}</p>
-                                                    <input value={form[key] || ''} onChange={set(key)} className="text-[14px] font-semibold border-b border-dashed outline-none bg-transparent w-full" style={{color:"var(--ds-text-primary)",borderColor:"var(--ds-border-default)",lineHeight:"140%"}} />
-                                                </div>
+                                {allImgs.length > 1 && (
+                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                        {allImgs.map((img, i) => (
+                                            <div key={i} onClick={() => setActiveImg(i)}
+                                                className="flex-shrink-0 w-20 h-14 cursor-pointer transition-all overflow-hidden"
+                                                style={{borderRadius:'8px', border: i === activeImg ? '2px solid var(--ds-brand-primary)' : '2px solid transparent', opacity: i === activeImg ? 1 : 0.6}}>
+                                                <img src={img} className="w-full h-full object-cover" alt={"Foto " + (i+1)} />
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Características — toggles */}
-                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Características</h3>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{backgroundColor:"#F7F7F9",color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Ative as que se aplicam</span>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {Object.keys(toggleLabels).map(k => <Toggle key={k} k={k} />)}
-                                </div>
+                                )}
                             </div>
+                        )}
 
-                            {/* Itens do veículo */}
-                            {vehicle && vehicle.itens && vehicle.itens.length > 0 && (
-                                <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-4" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Itens do Veículo</h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {vehicle.itens.map((item, i) => (
-                                            <span key={i} className="px-4 rounded-full text-[14px] font-semibold border transition-colors" style={{height:32,display:"inline-flex",alignItems:"center",backgroundColor:"#F5F2FF",color:"var(--ds-text-primary)",borderColor:"#DCDCE9",lineHeight:"140%"}}>{item}</span>
-                                        ))}
+                        {/* Título e preço — já com DS, apenas ajuste minor */}
+                        <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                            <div className="flex items-start gap-4 mb-1 flex-wrap">
+                                <input value={form.titulo} onChange={set('titulo')}
+                                    className="text-[20px] font-bold flex-1 border-b-2 border-dashed outline-none bg-transparent pb-1 transition-colors"
+                                    style={{color:"var(--ds-text-emphasys)",borderColor:"var(--ds-border-default)",lineHeight:"130%"}} />
+                            </div>
+                            {vehicle && <p className="text-[14px] mb-4" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>{vehicle.versao}</p>}
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[16px]" style={{color:'#BEBEBF', fontVariationSettings:"'FILL' 1"}}>location_on</span>
+                                    <input value={form.cidade} onChange={set('cidade')}
+                                        className="text-[14px] border-b border-dashed outline-none bg-transparent"
+                                        style={{color:"var(--ds-text-secondary)",borderColor:"var(--ds-border-default)",lineHeight:"140%"}} />
+                                </div>
+                                <div className="text-right">
+                                    <div className="flex items-center gap-2 justify-end mb-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1"
+                                            style={{color:'var(--ds-brand-complementary)', background:'rgba(91,88,143,0.1)'}}>
+                                            <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>stars</span>
+                                            Valor sugerido
+                                        </span>
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Descrição */}
-                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest" style={{color:"var(--ds-text-secondary)",lineHeight:"140%"}}>Descrição do anúncio</h3>
-                                    <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{color:"var(--ds-text-complementary)",backgroundColor:"rgba(91,88,143,0.1)",lineHeight:"140%"}}>
-                                        <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>auto_awesome</span>
-                                        Gerado automaticamente
-                                    </span>
-                                </div>
-                                <textarea
-                                    value={form.descricao}
-                                    onChange={set('descricao')}
-                                    rows={5}
-                                    className="w-full text-[14px] rounded-[8px] p-4 outline-none resize-none transition-all" style={{color:"var(--ds-text-secondary)",lineHeight:"140%",border:"1px dashed #DCDCE9",backgroundColor:"var(--ds-bg-page)"}}
-                                    placeholder="Descreva o veículo para o comprador..."
-                                />
-                                <p className="text-[10px] mt-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>Edite o texto acima para personalizar sua descrição.</p>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex flex-col-reverse md:flex-row gap-3 pt-2">
-                                <button onClick={() => navigate('/placa')} className="h-12 px-6 border-2 font-semibold rounded-[8px] hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[14px] md:w-auto w-full" style={{borderColor:"var(--ds-border-default)",color:"var(--ds-text-secondary)",lineHeight:"130%"}}>
-                                    <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                                    Voltar
-                                </button>
-                                <button
-                                    onClick={handlePublicar}
-                                    disabled={loading}
-                                    className={["flex-1 h-12 font-semibold rounded-[8px] text-[16px] transition-all flex items-center justify-center gap-2", loading ? "bg-[#BEBEBF] text-white cursor-not-allowed" : "signature-gradient text-white cursor-pointer"].join(' ')}
-                                >
-                                    {loading ? (
-                                        <React.Fragment>
-                                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                            </svg>
-                                            Publicando...
-                                        </React.Fragment>
-                                    ) : (
-                                        <React.Fragment>
-                                            <span className="material-symbols-outlined">publish</span>
-                                            Publicar Anúncio
-                                        </React.Fragment>
+                                    <div className="flex items-center gap-1 justify-end">
+                                        <span className="text-[20px] font-bold" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>R$</span>
+                                        <input value={form.preco} onChange={set('preco')}
+                                            className="text-[24px] font-bold w-36 border-b-2 border-dashed outline-none bg-transparent text-right"
+                                            style={{color:"var(--ds-neutral-low-darker, #2F2F32)",borderColor:"var(--ds-border-default)",lineHeight:"120%"}} />
+                                    </div>
+                                    <p className="text-[10px] mt-1" style={{color:"var(--ds-text-disabled)",lineHeight:"140%"}}>Clique para editar o valor</p>
+                                    {vehicle && vehicle.precoMin && vehicle.precoMax && (
+                                        <p className="text-[10px] mt-0.5" style={{color:'var(--ds-text-secondary)'}}>
+                                            Faixa IWM: R$ {vehicle.precoMin} – R$ {vehicle.precoMax}
+                                        </p>
                                     )}
-                                </button>
+                                </div>
                             </div>
-                        </main>
-                    </div>
+                        </div>
+
+                        {/* Dados do veículo */}
+                        {vehicle && (
+                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                                <div className="flex items-center justify-between mb-5">
+                                    <h3 className="text-[10px] font-semibold uppercase tracking-widest leading-[140%]" style={{color:"var(--ds-text-secondary)"}}>Dados do Veículo</h3>
+                                    {vehicle.placa && (
+                                        <span className="flex items-center gap-1.5 text-[12px] font-semibold px-3 rounded-full leading-[130%]"
+                                            style={{color:"var(--ds-text-complementary)", background:"rgba(91,88,143,0.1)", height:24}}>
+                                            <span className="material-symbols-outlined text-[14px]" style={{fontVariationSettings:"'FILL' 1"}}>id_card</span>
+                                            Placa {vehicle.placa} · Final {form.finalPlaca}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-5 gap-x-4">
+                                    {[['Ano','ano','calendar_month'],['KM','km','speed'],['Câmbio','cambio','settings'],
+                                      ['Carroceria','carroceria','directions_car'],['Cor','cor','palette'],
+                                      ['Combustível','combustivel','local_gas_station'],['Portas','portas','sensor_door'],['Blindado','blindado','shield']
+                                    ].map(([label, key, icon]) => (
+                                        <div key={key} className="flex items-start gap-2">
+                                            <span className="material-symbols-outlined text-[16px] mt-0.5" style={{color:"#BEBEBF"}}>{icon}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1 leading-[140%]" style={{color:"var(--ds-text-disabled)"}}>{label}</p>
+                                                <input value={form[key] || ''} onChange={set(key)}
+                                                    className="text-[14px] font-semibold border-b border-dashed outline-none bg-transparent w-full leading-[140%]"
+                                                    style={{color:"var(--ds-neutral-low-darker, #2F2F32)",borderColor:"var(--ds-border-default)"}} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Características */}
+                        <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                            <div className="flex items-center gap-2 mb-4">
+                                <h3 className="text-[10px] font-semibold uppercase tracking-widest leading-[140%]" style={{color:"var(--ds-text-secondary)"}}>Características</h3>
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full leading-[140%]"
+                                    style={{background:"var(--ds-bg-page)", color:"var(--ds-text-secondary)"}}>Ative as que se aplicam</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {Object.keys(toggleLabels).map(k => <Toggle key={k} k={k} />)}
+                            </div>
+                        </div>
+
+                        {/* Itens do veículo */}
+                        {vehicle && vehicle.itens && vehicle.itens.length > 0 && (
+                            <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                                <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-4 leading-[140%]" style={{color:"var(--ds-text-secondary)"}}>Itens do Veículo</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {vehicle.itens.map((item, i) => (
+                                        <span key={i} className="px-4 rounded-full text-[14px] font-semibold border leading-[140%]"
+                                            style={{height:32, display:"inline-flex", alignItems:"center", background:"#F7F7F9", color:"var(--ds-neutral-low-darker, #2F2F32)", borderColor:"var(--ds-border-default)"}}>
+                                            {item}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Descrição */}
+                        <div className="bg-white rounded-[16px] p-6 border border-[#DCDCE9]" style={{boxShadow:"var(--shadow-ds-level-1)"}}>
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-[10px] font-semibold uppercase tracking-widest leading-[140%]" style={{color:"var(--ds-text-secondary)"}}>Descrição do anúncio</h3>
+                                <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full leading-[140%]"
+                                    style={{color:"var(--ds-text-complementary)", background:"rgba(91,88,143,0.1)"}}>
+                                    <span className="material-symbols-outlined text-[12px]" style={{fontVariationSettings:"'FILL' 1"}}>auto_awesome</span>
+                                    Gerado automaticamente
+                                </span>
+                            </div>
+                            <textarea value={form.descricao} onChange={set('descricao')} rows={5}
+                                className="w-full text-[14px] rounded-[8px] p-4 outline-none resize-none transition-all leading-[140%]"
+                                style={{color:"var(--ds-text-secondary)", border:"1px dashed var(--ds-border-default)", background:"var(--ds-bg-page)"}}
+                                placeholder="Descreva o veículo para o comprador..." />
+                            <p className="text-[10px] mt-1 leading-[140%]" style={{color:"var(--ds-text-disabled)"}}>Edite o texto acima para personalizar sua descrição.</p>
+                        </div>
+
+                        {/* Botões de ação DS */}
+                        <div className="flex flex-col-reverse md:flex-row gap-3 pt-2">
+                            <button onClick={() => navigate('/placa')}
+                                className="h-12 px-6 rounded-[8px] text-[14px] font-semibold leading-[130%] flex items-center justify-center gap-2 transition-all hover:opacity-80 md:w-auto w-full"
+                                style={{border:'1px solid var(--ds-border-default)', color:'var(--ds-text-secondary)', background:'var(--ds-bg-card)'}}>
+                                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                                Voltar
+                            </button>
+                            <button onClick={handlePublicar} disabled={loading}
+                                className="flex-1 h-12 text-white text-[16px] font-semibold leading-[130%] rounded-[8px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                                style={loading ? {background:'var(--ds-neutral-high-medium)', cursor:'not-allowed'} : {background:'linear-gradient(135deg, #E22446 0%, #AB0B33 100%)', boxShadow:'0 8px 16px rgba(226,36,70,0.24)'}}>
+                                {loading ? (
+                                    <React.Fragment>
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        Publicando...
+                                    </React.Fragment>
+                                ) : (
+                                    <React.Fragment>
+                                        <span className="material-symbols-outlined text-[18px]">publish</span>
+                                        Publicar Anúncio
+                                    </React.Fragment>
+                                )}
+                            </button>
+                        </div>
+                    </main>
                 </div>
             );
         };
