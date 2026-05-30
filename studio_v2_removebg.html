@@ -273,6 +273,11 @@
             );
         };
 
+        // ── Limites de uso ────────────────────────────────────────────────
+        const USAGE_KEY = 'wm_studio_usage';
+        const LIMITS = { fotos: 100, videos: 20 };
+        const getUsage = () => { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{"fotos":0,"videos":0}'); } catch(e) { return {fotos:0, videos:0}; } };
+
         const TopBar = () => {
             const navigate = useNavigate();
             const location = useLocation();
@@ -282,6 +287,8 @@
                     return videos.filter(v => v.status === 'generating').length;
                 } catch(e) { return 0; }
             }, [location.pathname]);
+
+            const usage = React.useMemo(() => getUsage(), [location.pathname]);
 
             return (
                 <header style={{background:'var(--ds-bg-card)', borderBottom:'1px solid var(--ds-border-default)', boxShadow:'var(--shadow-ds-level-1)'}}
@@ -299,6 +306,23 @@
 
                     {/* Ações */}
                     <div className="flex items-center gap-2 md:gap-3">
+
+                        {/* Indicadores de uso — compactos */}
+                        <div className="hidden md:flex items-center gap-2">
+                            {/* Fotos */}
+                            <div className="flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-[11px] font-semibold"
+                                style={{background:'var(--ds-bg-page)', border:'1px solid var(--ds-border-default)', color: usage.fotos >= LIMITS.fotos ? 'var(--ds-brand-primary)' : 'var(--ds-text-secondary)'}}>
+                                <span className="material-symbols-outlined text-[13px]" style={{fontVariationSettings:"'FILL' 1", color: usage.fotos >= LIMITS.fotos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-high-medium)'}}>photo_library</span>
+                                <span>{usage.fotos}<span style={{color:'var(--ds-neutral-high-medium)'}}>/100</span></span>
+                            </div>
+                            {/* Vídeos */}
+                            <div className="flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-[11px] font-semibold"
+                                style={{background:'var(--ds-bg-page)', border:'1px solid var(--ds-border-default)', color: usage.videos >= LIMITS.videos ? 'var(--ds-brand-primary)' : 'var(--ds-text-secondary)'}}>
+                                <span className="material-symbols-outlined text-[13px]" style={{fontVariationSettings:"'FILL' 1", color: usage.videos >= LIMITS.videos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-high-medium)'}}>movie</span>
+                                <span>{usage.videos}<span style={{color:'var(--ds-neutral-high-medium)'}}>/20</span></span>
+                            </div>
+                        </div>
+
                         {/* Meus Vídeos */}
                         <button
                             onClick={() => navigate('/meus-videos')}
@@ -432,6 +456,66 @@
                                     </React.Fragment>
                                 ))}
                             </div>
+
+                            {/* Painel de uso */}
+                            {(() => {
+                                const usage = getUsage();
+                                const pctFotos = Math.min((usage.fotos / LIMITS.fotos) * 100, 100);
+                                const pctVideos = Math.min((usage.videos / LIMITS.videos) * 100, 100);
+                                const alertFotos = pctFotos >= 80;
+                                const alertVideos = pctVideos >= 80;
+                                return (
+                                    <div className="mb-8 p-4 rounded-[12px] flex flex-col sm:flex-row gap-4"
+                                        style={{background:'var(--ds-bg-card)', border:'1px solid var(--ds-border-default)', boxShadow:'var(--shadow-ds-level-1)'}}>
+
+                                        {/* Fotos */}
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[14px]" style={{color:'var(--ds-neutral-high-medium)', fontVariationSettings:"'FILL' 1"}}>photo_library</span>
+                                                    <span className="text-[12px] font-semibold leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Fotos processadas</span>
+                                                </div>
+                                                <span className="text-[12px] font-bold leading-[140%]" style={{color: alertFotos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                                                    {usage.fotos}<span className="font-normal" style={{color:'var(--ds-neutral-high-medium)'}}>/100</span>
+                                                </span>
+                                            </div>
+                                            <div className="h-2 rounded-[4px]" style={{background:'var(--ds-bg-page)'}}>
+                                                <div className="h-2 rounded-[4px] transition-all"
+                                                    style={{width: pctFotos + '%', background: alertFotos ? 'var(--ds-brand-primary)' : 'linear-gradient(135deg, #E22446, #AB0B33)'}}></div>
+                                            </div>
+                                            {alertFotos && (
+                                                <p className="text-[10px] leading-[140%] mt-1" style={{color:'var(--ds-brand-primary)'}}>
+                                                    Restam apenas {LIMITS.fotos - usage.fotos} fotos no plano atual.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="hidden sm:block w-px" style={{background:'var(--ds-border-default)'}}></div>
+
+                                        {/* Vídeos */}
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[14px]" style={{color:'var(--ds-neutral-high-medium)', fontVariationSettings:"'FILL' 1"}}>movie</span>
+                                                    <span className="text-[12px] font-semibold leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Vídeos gerados</span>
+                                                </div>
+                                                <span className="text-[12px] font-bold leading-[140%]" style={{color: alertVideos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                                                    {usage.videos}<span className="font-normal" style={{color:'var(--ds-neutral-high-medium)'}}>/20</span>
+                                                </span>
+                                            </div>
+                                            <div className="h-2 rounded-[4px]" style={{background:'var(--ds-bg-page)'}}>
+                                                <div className="h-2 rounded-[4px] transition-all"
+                                                    style={{width: pctVideos + '%', background: alertVideos ? 'var(--ds-brand-primary)' : 'linear-gradient(135deg, var(--ds-brand-complementary), #41408F)'}}></div>
+                                            </div>
+                                            {alertVideos && (
+                                                <p className="text-[10px] leading-[140%] mt-1" style={{color:'var(--ds-brand-primary)'}}>
+                                                    Restam apenas {LIMITS.videos - usage.videos} vídeos no plano atual.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Drop Zone */}
                             <section className="w-full mb-4">
@@ -1033,6 +1117,57 @@
                                     </div>
                                 </div>
                             )}
+
+                            {/* Indicador de uso */}
+                            {(() => {
+                                const usage = getUsage();
+                                const pctFotos = Math.min((usage.fotos / LIMITS.fotos) * 100, 100);
+                                const pctVideos = Math.min((usage.videos / LIMITS.videos) * 100, 100);
+                                const alertFotos = pctFotos >= 80;
+                                const alertVideos = pctVideos >= 80;
+                                return (
+                                    <div className="p-3 rounded-[12px] flex flex-col gap-3"
+                                        style={{background:'var(--ds-bg-page)', border:'1px solid var(--ds-border-default)'}}>
+                                        {/* Fotos */}
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[13px]" style={{color: alertFotos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-high-medium)', fontVariationSettings:"'FILL' 1"}}>photo_library</span>
+                                                    <span className="text-[11px] font-semibold leading-[140%]" style={{color: alertFotos ? 'var(--ds-brand-primary)' : 'var(--ds-text-secondary)'}}>Fotos</span>
+                                                </div>
+                                                <span className="text-[11px] font-bold leading-[140%]" style={{color: alertFotos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                                                    {usage.fotos}<span className="font-normal" style={{color:'var(--ds-neutral-high-medium)'}}>/100</span>
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 rounded-[4px]" style={{background:'var(--ds-bg-card)'}}>
+                                                <div className="h-1.5 rounded-[4px] transition-all"
+                                                    style={{width: pctFotos + '%', background: alertFotos ? 'var(--ds-brand-primary)' : 'linear-gradient(135deg,#E22446,#AB0B33)'}}></div>
+                                            </div>
+                                        </div>
+                                        {/* Vídeos */}
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[13px]" style={{color: alertVideos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-high-medium)', fontVariationSettings:"'FILL' 1"}}>movie</span>
+                                                    <span className="text-[11px] font-semibold leading-[140%]" style={{color: alertVideos ? 'var(--ds-brand-primary)' : 'var(--ds-text-secondary)'}}>Vídeos</span>
+                                                </div>
+                                                <span className="text-[11px] font-bold leading-[140%]" style={{color: alertVideos ? 'var(--ds-brand-primary)' : 'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                                                    {usage.videos}<span className="font-normal" style={{color:'var(--ds-neutral-high-medium)'}}>/20</span>
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 rounded-[4px]" style={{background:'var(--ds-bg-card)'}}>
+                                                <div className="h-1.5 rounded-[4px] transition-all"
+                                                    style={{width: pctVideos + '%', background: alertVideos ? 'var(--ds-brand-primary)' : 'linear-gradient(135deg,var(--ds-brand-complementary),#41408F)'}}></div>
+                                            </div>
+                                        </div>
+                                        {(alertFotos || alertVideos) && (
+                                            <p className="text-[10px] leading-[140%]" style={{color:'var(--ds-brand-primary)'}}>
+                                                Limite próximo — considere atualizar seu plano.
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             <div className="flex flex-col gap-3">
                                 <button onClick={() => navigate('/')}
