@@ -682,13 +682,17 @@
 
             const STUDIO_TEMPLATE = "/estudio_infinity_white.jpg";
 
-            const templates = [
+            const photoTemplates = [
                 { id: 0, name: "Estúdio Branco", uses: "3.2k USOS", bg: "#f0f0f0", studioImg: null, isEstudioBranco: true, img: "https://raw.githubusercontent.com/tigo30009/Studio/main/Fundo_estudio_1.jpeg" },
                 { id: 1, name: "Bytedance", uses: "1.8k USOS", bg: "#8a8a8a", studioImg: null, isBytedance: true, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPqX9l8rCgEaJNsDcIVqX7j8vU_nUeqC0g08g69aE4J317qWGWnVyj0MjR9-zGzT8OvfsvTttGK_A4_rc3biQiQPIwjXpZPw9dNNlZZZJC9ykD7CJ6PSTI_-A-x6gfWo2Wa1J2bJ3WT6OI2RkirG_ToGvLn8nTAHliKEc6oeqGYqr5WDQPl8yS0plz7-wdWXWPUNOKBsArcUifeXK3dX_AtFTA83rqq4ibGC1rmZpcLGs550xMxmsDzGuMPpC0eEPh029_XV6lbJg" },
                 { id: 2, name: "Midnight Onyx", uses: "942 USOS", bg: "#1a1a2e", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGdi8qIED4qmgJH0rcg_FQaJ4xwMiCRh9gABhxqZECFtn_7Rw3Ic9IskgPTlzcv0vBBD9LtbqqQAvDqsUNbZ7mcoy9m3Mr-YLY10312_UTXNq0F1WFjL72d6Z8sXmHp-WN3N9a7rbRzCgINx63QOiOYZcCFV9A5btemaMbA7b7jEzSe6S5kEnCWOa64Zg7N31A1r8WA-8QTPDf4Ygpc6otUDrTAN7dmkk0_dSLp2GUvSI08etrAJp1mH7GOe1sJyfC7pznyVDCcyI", comingSoon: true },
                 { id: 3, name: "360 Dinâmico", uses: "VÍDEO", bg: "#222", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDdZpv0pBrSD-tnSXiDAHYi1hbKfOaXIiV1q1RgSD1JfBU8ConkdhVxJYmiKM8lhpN4JzYxXyp0LGi4niYz2OrECaON7fb-YpWsGn1Mrt1UO0UYubZnx9NXQazpyDphoYtV6I7T7w_I-MuxGnWBu2BWnvsIImoHeg-wgZBeLI4GECCpKa_qkb3xqPND31AfvmukBAimrex_sP1guMbn7NU8pubLg3FpyhCm-wPe3mLWl0IZtVh-JSi9jpKOJHFG2Vv6N4uiVNvJQBk", isVideo: true, comingSoon: true },
-                { id: 4, name: "Redes Sociais", uses: "NOVO", bg: "#0f0f1a", studioImg: null, img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80", isSocialVideo: true },
             ];
+            const videoTemplates = [
+                { id: 4, name: "Redes Sociais", uses: "NOVO", desc: "9:16 · TikTok, Reels, Stories", bg: "#0f0f1a", img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80", isSocialVideo: true },
+                { id: 5, name: "Marketplace", uses: "NOVO", desc: "16:9 · Portais de anúncio", bg: "#0a1628", img: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&q=80", isMarketplaceVideo: true },
+            ];
+            const templates = [...photoTemplates, ...videoTemplates];
 
             const currentPhoto = photos[activePhoto];
             const currentProcessed = processedImgs[activePhoto];
@@ -1030,6 +1034,65 @@
                 }
             };
 
+            const generateMarketplaceVideo = async () => {
+                if (photos.length === 0) return;
+                setVideoStatus('generating');
+                setVideoUrl(null);
+                setError('');
+                try {
+                    const formData = new FormData();
+                    const filesToProcess = photos.slice(0, 9);
+                    for (var i = 0; i < filesToProcess.length; i++) {
+                        const p = filesToProcess[i];
+                        const base64 = p.preview;
+                        const byteString = atob(base64.split(',')[1]);
+                        const mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
+                        const ab = new ArrayBuffer(byteString.length);
+                        const ia = new Uint8Array(ab);
+                        for (var j = 0; j < byteString.length; j++) { ia[j] = byteString.charCodeAt(j); }
+                        const blob = new Blob([ab], { type: mimeType });
+                        formData.append('images', blob, (p.name || ('photo' + i + '.jpg')));
+                    }
+                    const thumbnail = photos[0] ? photos[0].preview : null;
+
+                    const res = await fetch('https://studio-xefd.onrender.com/generate-marketplace-video', { method: 'POST', body: formData });
+                    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro ao iniciar geração do vídeo marketplace (status ' + res.status + ')'); }
+                    const data = await res.json();
+                    const taskId = data.task_id;
+
+                    const existing = loadVideos();
+                    saveVideos([{ task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, thumbnail, type: 'marketplace' }, ...existing]);
+
+                    const poll = async () => {
+                        try {
+                            const statusRes = await fetch('https://studio-xefd.onrender.com/video-status/' + taskId);
+                            const statusData = await statusRes.json();
+                            const s = statusData.status;
+                            if (s === 'succeeded' && statusData.video_url) {
+                                setVideoStatus('succeeded');
+                                setVideoUrl(statusData.video_url);
+                                clearInterval(videoPollingRef.current);
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'succeeded', video_url: statusData.video_url } : v);
+                                saveVideos(updated);
+                                incrementUsage('videos');
+                            } else if (s === 'failed') {
+                                setVideoStatus('failed');
+                                setError('Falha na geração do vídeo marketplace.');
+                                clearInterval(videoPollingRef.current);
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'failed' } : v);
+                                saveVideos(updated);
+                            }
+                        } catch(e) { console.error('Polling error:', e); }
+                    };
+                    videoPollingRef.current = setInterval(poll, 5000);
+                    poll();
+
+                } catch (err) {
+                    setVideoStatus('failed');
+                    setError(err.message);
+                }
+            };
+
             // Cleanup polling on unmount
             React.useEffect(() => {
                 return () => { if (videoPollingRef.current) clearInterval(videoPollingRef.current); };
@@ -1064,22 +1127,22 @@
 
                         {/* ── Left Controls ── */}
                         <aside className="md:col-span-3 flex flex-col gap-6">
+
+                            {/* Seção 1 — Estúdio de Foto */}
                             <section>
-                                <h2 className="text-[12px] font-semibold uppercase tracking-widest leading-[140%] mb-4" style={{color:'var(--ds-text-secondary)'}}>Fundos de Estúdio</h2>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <span className="material-symbols-outlined text-[14px]" style={{color:'var(--ds-brand-primary)', fontVariationSettings:"'FILL' 1"}}>photo_camera</span>
+                                    <h2 className="text-[12px] font-semibold uppercase tracking-widest leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Estúdio de Foto</h2>
+                                </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    {templates.map((t) => (
+                                    {photoTemplates.map((t) => (
                                         <div key={t.id}
                                             onClick={() => !t.comingSoon && setSelectedTemplate(t.id)}
                                             className={["relative overflow-hidden transition-all", t.comingSoon ? "cursor-not-allowed opacity-60" : "cursor-pointer"].join(' ')}
                                             style={{borderRadius:'12px', border: selectedTemplate === t.id && !t.comingSoon ? '2px solid var(--ds-brand-primary)' : '2px solid transparent', background:'var(--ds-bg-card)', boxShadow: selectedTemplate === t.id ? 'var(--shadow-ds-level-2)' : 'var(--shadow-ds-level-1)'}}>
                                             <div className="aspect-video relative">
                                                 <img className={["w-full h-full object-cover", t.comingSoon ? "opacity-50" : ""].join(' ')} src={t.img} alt={t.name} style={{borderRadius:'10px 10px 0 0'}} />
-                                                {!t.comingSoon && (
-                                                    <div className="absolute top-2 right-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-full"
-                                                        style={{background: t.isSocialVideo ? 'var(--ds-brand-complementary)' : 'rgba(0,0,0,0.55)'}}>
-                                                        {t.uses}
-                                                    </div>
-                                                )}
+                                                {!t.comingSoon && <div className="absolute top-2 right-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:'rgba(0,0,0,0.55)'}}>{t.uses}</div>}
                                                 {t.comingSoon && (
                                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1" style={{background:'rgba(0,0,0,0.5)'}}>
                                                         <span className="material-symbols-outlined text-white/80 text-[24px]">schedule</span>
@@ -1094,6 +1157,40 @@
                                             </div>
                                             <div className="px-3 py-2">
                                                 <p className="text-[12px] font-semibold leading-[140%]" style={{color: t.comingSoon ? 'var(--ds-text-disabled)' : 'var(--ds-neutral-low-darker, #2F2F32)'}}>{t.name}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <div style={{height:'1px', background:'var(--ds-border-default)'}}></div>
+
+                            {/* Seção 2 — Geração de Vídeo */}
+                            <section>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <span className="material-symbols-outlined text-[14px]" style={{color:'var(--ds-brand-complementary)', fontVariationSettings:"'FILL' 1"}}>movie</span>
+                                    <h2 className="text-[12px] font-semibold uppercase tracking-widest leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Geração de Vídeo</h2>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {videoTemplates.map((t) => (
+                                        <div key={t.id}
+                                            onClick={() => setSelectedTemplate(t.id)}
+                                            className="relative overflow-hidden transition-all cursor-pointer"
+                                            style={{borderRadius:'12px', border: selectedTemplate === t.id ? '2px solid var(--ds-brand-complementary)' : '2px solid transparent', background:'var(--ds-bg-card)', boxShadow: selectedTemplate === t.id ? 'var(--shadow-ds-level-2)' : 'var(--shadow-ds-level-1)'}}>
+                                            <div className="aspect-video relative">
+                                                <img className="w-full h-full object-cover opacity-80" src={t.img} alt={t.name} style={{borderRadius:'10px 10px 0 0'}} />
+                                                <div className="absolute inset-0 flex items-end p-2" style={{borderRadius:'10px 10px 0 0', background:'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 60%)'}}>
+                                                    <span className="text-white text-[9px] font-bold">{t.desc}</span>
+                                                </div>
+                                                <div className="absolute top-2 right-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:'var(--ds-brand-complementary)'}}>{t.uses}</div>
+                                                {selectedTemplate === t.id && (
+                                                    <div className="absolute inset-0 flex items-center justify-center" style={{background:'rgba(91,88,143,0.15)'}}>
+                                                        <span className="material-symbols-outlined text-[32px]" style={{color:'var(--ds-brand-complementary)', fontVariationSettings:"'FILL' 1"}}>check_circle</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="px-3 py-2">
+                                                <p className="text-[12px] font-semibold leading-[140%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>{t.name}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -1198,14 +1295,20 @@
                                     Voltar para Upload
                                 </button>
 
-                                {templates[selectedTemplate].isSocialVideo ? (
+                                {(templates[selectedTemplate].isSocialVideo || templates[selectedTemplate].isMarketplaceVideo) ? (
                                     <React.Fragment>
                                         <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{border:'1.5px dashed var(--ds-brand-complementary)', background:'rgba(91,88,143,0.04)'}}>
                                             <div className="flex items-center gap-2">
                                                 <span className="material-symbols-outlined text-[20px]" style={{color:'var(--ds-brand-complementary)', fontVariationSettings:"'FILL' 1"}}>play_circle</span>
-                                                <p className="text-[14px] font-semibold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Vídeo para Redes Sociais</p>
+                                                <p className="text-[14px] font-semibold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                                                    {templates[selectedTemplate].isMarketplaceVideo ? 'Vídeo para Marketplace' : 'Vídeo para Redes Sociais'}
+                                                </p>
                                             </div>
-                                            <p className="text-[12px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Gera um vídeo 9:16 de 15s com slideshow das fotos, textos do veículo e CTA final.</p>
+                                            <p className="text-[12px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>
+                                                {templates[selectedTemplate].isMarketplaceVideo
+                                                    ? 'Gera um vídeo 16:9 de 15s para exibição nos portais de anúncio.'
+                                                    : 'Gera um vídeo 9:16 de 15s com slideshow das fotos, textos do veículo e CTA final.'}
+                                            </p>
                                             <div className="flex items-center gap-2 px-3 py-2 rounded-[8px]" style={{background:'var(--ds-bg-card)', border:'1px solid rgba(91,88,143,0.2)'}}>
                                                 <span className="material-symbols-outlined text-[16px]" style={{color:'var(--ds-brand-complementary)', fontVariationSettings:"'FILL' 1"}}>photo_library</span>
                                                 {photos.length > 0 ? (
@@ -1222,10 +1325,15 @@
                                                 </div>
                                             )}
                                             <div className="flex flex-wrap gap-2">
-                                                {['TikTok', 'Reels', 'Stories'].map(tag => (
+                                                {(templates[selectedTemplate].isMarketplaceVideo
+                                                    ? ['Webmotors', 'OLX', 'iCarros']
+                                                    : ['TikTok', 'Reels', 'Stories']
+                                                ).map(tag => (
                                                     <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{background:'rgba(91,88,143,0.1)', color:'var(--ds-brand-complementary)'}}>{tag}</span>
                                                 ))}
-                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{background:'var(--ds-bg-page)', color:'var(--ds-text-secondary)'}}>9:16 · 15s</span>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{background:'var(--ds-bg-page)', color:'var(--ds-text-secondary)'}}>
+                                                    {templates[selectedTemplate].isMarketplaceVideo ? '16:9 · 15s' : '9:16 · 15s'}
+                                                </span>
                                             </div>
                                         </div>
                                         {videoStatus === 'generating' && (
@@ -1251,7 +1359,8 @@
                                                 </a>
                                             </div>
                                         )}
-                                        <button onClick={generateSocialVideo} disabled={videoStatus === 'generating' || photos.length === 0}
+                                        <button onClick={templates[selectedTemplate].isMarketplaceVideo ? generateMarketplaceVideo : generateSocialVideo}
+                                            disabled={videoStatus === 'generating' || photos.length === 0}
                                             className="w-full h-12 text-white text-[14px] font-semibold leading-[130%] rounded-[8px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                                             style={videoStatus === 'generating' || photos.length === 0 ? {background:'var(--ds-neutral-high-medium)', cursor:'not-allowed'} : {background:'linear-gradient(135deg, var(--ds-brand-complementary) 0%, #41408F 100%)', boxShadow:'0 8px 16px rgba(91,88,143,0.24)'}}>
                                             <span className="material-symbols-outlined text-[18px]">movie</span>
@@ -1337,7 +1446,7 @@
                         {/* ── Right Preview ── */}
                         <div className="md:col-span-9 flex flex-col gap-4">
 
-                            {templates[selectedTemplate].isSocialVideo ? (
+                            {(templates[selectedTemplate].isSocialVideo || templates[selectedTemplate].isMarketplaceVideo) ? (
                                 /* ── Painel de vídeo grande ── */
                                 <div className="flex flex-col gap-4">
                                     {videoStatus === null && (
