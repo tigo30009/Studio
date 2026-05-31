@@ -508,6 +508,23 @@
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white wm-gradient">T</div>
                     </div>
                 </header>
+
+                {/* Faixa de Feedback */}
+                <div className="flex items-center justify-between px-4 md:px-8 py-2 gap-3"
+                    style={{background:'linear-gradient(135deg, rgba(255,184,0,0.1), rgba(245,158,11,0.06))', borderBottom:'1px solid rgba(255,184,0,0.2)'}}>
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]" style={{color:'#F59E0B', fontVariationSettings:"'FILL' 1"}}>star</span>
+                        <p className="text-[12px] leading-[140%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>
+                            <span className="font-semibold">Você está no piloto do Estúdio Webmotors.</span>
+                            <span className="hidden sm:inline" style={{color:'var(--ds-text-secondary)'}}> Sua opinião é essencial para melhorarmos o produto.</span>
+                        </p>
+                    </div>
+                    <button onClick={() => setShowFeedback(true)}
+                        className="flex-shrink-0 h-7 px-3 rounded-[8px] text-[11px] font-semibold transition-all hover:opacity-90"
+                        style={{background:'linear-gradient(135deg, #FFB800, #F59E0B)', color:'white', boxShadow:'0 2px 8px rgba(255,184,0,0.3)'}}>
+                        Avaliar agora
+                    </button>
+                </div>
                 {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} tela={location.pathname} tipo="manual" />}
             </React.Fragment>
             );
