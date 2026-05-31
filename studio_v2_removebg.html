@@ -297,6 +297,9 @@
             const [nota, setNota] = React.useState(0);
             const [hover, setHover] = React.useState(0);
             const [feedback, setFeedback] = React.useState('');
+            const [nome, setNome] = React.useState('');
+            const [telefone, setTelefone] = React.useState('');
+            const [loja, setLoja] = React.useState('');
             const [economizou, setEconomizou] = React.useState('');
             const [usaria, setUsaria] = React.useState('');
             const [indicaria, setIndicaria] = React.useState('');
@@ -306,7 +309,7 @@
             const handleEnviar = async () => {
                 if (!nota) return;
                 setEnviando(true);
-                await sendFeedback({ nota, feedback, economizou_tempo: economizou, usaria_novamente: usaria, indicaria, tela, tipo });
+                await sendFeedback({ nota, feedback, nome, telefone, loja, economizou_tempo: economizou, usaria_novamente: usaria, indicaria, tela, tipo });
                 setEnviado(true);
                 setEnviando(false);
                 setTimeout(onClose, 1800);
@@ -337,6 +340,23 @@
                             <button onClick={onClose} className="p-1 rounded-[8px] hover:opacity-70 transition-all" style={{color:'var(--ds-neutral-high-medium)'}}>
                                 <span className="material-symbols-outlined text-[20px]">close</span>
                             </button>
+                        </div>
+
+                        {/* Identificação */}
+                        <div className="flex flex-col gap-3">
+                            <p className="text-[12px] font-semibold uppercase tracking-wider" style={{color:'var(--ds-text-secondary)'}}>Identificação</p>
+                            {[
+                                { label: 'Seu nome', value: nome, set: setNome, placeholder: 'Ex: João Silva', type: 'text' },
+                                { label: 'Telefone', value: telefone, set: setTelefone, placeholder: 'Ex: (11) 99999-9999', type: 'tel' },
+                                { label: 'Nome da loja', value: loja, set: setLoja, placeholder: 'Ex: Auto Center SP', type: 'text' },
+                            ].map(({ label, value, set, placeholder, type }) => (
+                                <div key={label}>
+                                    <input type={type} value={value} onChange={e => set(e.target.value)}
+                                        placeholder={placeholder}
+                                        className="w-full h-10 px-3 text-[13px] rounded-[8px] outline-none leading-[140%]"
+                                        style={{border:'1px solid var(--ds-border-default)', background:'var(--ds-bg-page)', color:'var(--ds-neutral-low-darker, #2F2F32)'}} />
+                                </div>
+                            ))}
                         </div>
 
                         {/* Estrelas */}
