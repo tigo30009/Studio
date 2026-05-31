@@ -234,6 +234,83 @@ app.post('/generate-video', upload.array('images', 20), async (req, res) => {
   }
 });
 
+// ─── Bytedance Seedance marketplace video generation ──────────────────────────
+app.post('/generate-marketplace-video', upload.array('images', 20), async (req, res) => {
+  const tmpFiles = [];
+  try {
+    const apiKey = process.env.ARK_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'ARK_API_KEY não configurada.' });
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+
+    const host = req.headers.host || 'studio-xefd.onrender.com';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+
+    console.log(`[generate-marketplace-video] Processing ${req.files.length} images (API limit: 9)`);
+
+    const filesToProcess = req.files.slice(0, 9);
+
+    const imageUrls = [];
+    for (const file of filesToProcess) {
+      const filename = `mkt_${randomUUID()}.jpg`;
+      const filepath = path.join(os.tmpdir(), filename);
+      fs.writeFileSync(filepath, file.buffer);
+      tmpFiles.push(filepath);
+      const url = `${protocol}://${host}/tmp/${filename}`;
+      imageUrls.push(url);
+      console.log(`[generate-marketplace-video] Saved ${filename} (${(file.buffer.length/1024).toFixed(0)}KB)`);
+    }
+
+    const prompt = `Create a 15-second 16:9 vehicle presentation video using the provided photos. Open with smooth exterior shots (full body, front, rear, and side angles) using steady transitions. If only exterior photos are provided, use the entire duration for them. If interior photos exist, dedicate the final 5 seconds to showcasing the dashboard, seats, and key features. Maintain 100% fidelity to the source images. Accurately reproduce the exact current condition of the vehicle, intentionally including any visible wear, scratches, dents, or cosmetic imperfections present in the photos. Keep the original color, body shape, and all specific details exactly as photographed. Blur the vehicle's license plate for privacy. Replace the original backgrounds with a clean, bright-light studio environment throughout the video. Overlay clean text callouts in Brazilian Portuguese showing the make, model, year, mileage, and transmission. Include subtle background music and a male voiceover in Brazilian Portuguese describing the key highlights in a steady, automotive-marketplace tone. End with a clean outro featuring the centered text: 'Consulte condições de financiamento'.`;
+
+    const content = [
+      { type: 'text', text: prompt },
+      ...imageUrls.map(url => ({
+        type: 'image_url',
+        image_url: { url },
+        role: 'reference_image',
+      })),
+    ];
+
+    const payload = {
+      model: 'dreamina-seedance-2-0-fast-260128',
+      content,
+      generate_audio: true,
+      ratio: '16:9',
+      duration: 15,
+      watermark: false,
+    };
+
+    const response = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('Seedance marketplace task error:', err);
+      return res.status(response.status).json({ error: err.message || 'Erro ao criar task de vídeo marketplace.' });
+    }
+
+    const data = await response.json();
+    const taskId = data.id;
+    if (!taskId) return res.status(500).json({ error: 'Task ID não retornado pela API.' });
+
+    console.log('Seedance marketplace task created:', taskId);
+    console.log('[generate-marketplace-video] Payload images count:', imageUrls.length);
+    res.json({ task_id: taskId });
+
+    setTimeout(() => {
+      tmpFiles.forEach(f => { try { fs.unlinkSync(f); } catch(e) {} });
+    }, 5 * 60 * 1000);
+
+  } catch (err) {
+    tmpFiles.forEach(f => { try { fs.unlinkSync(f); } catch(e) {} });
+    console.error('generate-marketplace-video error:', err);
+    res.status(500).json({ error: 'Erro interno: ' + err.message });
+  }
+});
+
 // ─── Polling endpoint — check video task status ───────────────────────────────
 app.get('/video-status/:taskId', async (req, res) => {
   try {
