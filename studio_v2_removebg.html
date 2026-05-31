@@ -474,8 +474,8 @@
                         {/* Feedback */}
                         <button onClick={() => setShowFeedback(true)}
                             className="flex items-center gap-1.5 h-9 px-3 rounded-[8px] text-[12px] font-semibold transition-all hover:opacity-90"
-                            style={{border:'1px solid var(--ds-border-default)', color:'var(--ds-text-secondary)', background:'var(--ds-bg-card)'}}>
-                            <span className="material-symbols-outlined text-[15px]" style={{color:'#FFB800', fontVariationSettings:"'FILL' 1"}}>star</span>
+                            style={{background:'linear-gradient(135deg, #FFB800, #F59E0B)', color:'white', boxShadow:'0 4px 12px rgba(255,184,0,0.3)'}}>
+                            <span className="material-symbols-outlined text-[15px]" style={{fontVariationSettings:"'FILL' 1"}}>star</span>
                             <span className="hidden sm:inline">Feedback</span>
                         </button>
 
@@ -562,6 +562,13 @@
             const navigate = useNavigate();
             const [photos, setPhotos] = React.useState([]);
             const [isDragging, setIsDragging] = React.useState(false);
+            const [showUploadFeedback, setShowUploadFeedback] = React.useState(false);
+
+            React.useEffect(() => {
+                const handler = () => setShowUploadFeedback(true);
+                document.addEventListener('openFeedback', handler);
+                return () => document.removeEventListener('openFeedback', handler);
+            }, []);
             const [error, setError] = React.useState('');
             const fileInputRef = React.useRef(null);
 
@@ -591,7 +598,7 @@
 
             return (
                 <div className="flex min-h-screen" style={{background: 'var(--ds-bg-page)'}}>
-
+                    {showUploadFeedback && <FeedbackModal onClose={() => setShowUploadFeedback(false)} tela="/" tipo="card-upload" />}
                     <div className="flex-1 flex flex-col min-w-0">
                         <TopBar />
 
@@ -671,6 +678,33 @@
                                                 </p>
                                             )}
                                         </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Card de Feedback */}
+                            {(() => {
+                                const usage = getUsage();
+                                if (usage.fotos === 0 && usage.videos === 0) return null;
+                                return (
+                                    <div className="flex items-center justify-between p-4 rounded-[12px] mb-2"
+                                        style={{background:'linear-gradient(135deg, rgba(255,184,0,0.08), rgba(245,158,11,0.04))', border:'1px solid rgba(255,184,0,0.25)'}}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                                                style={{background:'linear-gradient(135deg, #FFB800, #F59E0B)'}}>
+                                                <span className="material-symbols-outlined text-white text-[18px]" style={{fontVariationSettings:"'FILL' 1"}}>star</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-[13px] font-semibold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Como está sendo sua experiência?</p>
+                                                <p className="text-[11px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Sua opinião ajuda a melhorar o Estúdio para todos os lojistas.</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => document.dispatchEvent(new CustomEvent('openFeedback'))}
+                                            className="flex-shrink-0 h-9 px-4 rounded-[8px] text-[12px] font-semibold transition-all hover:opacity-90 ml-3"
+                                            style={{background:'linear-gradient(135deg, #FFB800, #F59E0B)', color:'white', boxShadow:'0 4px 12px rgba(255,184,0,0.3)'}}>
+                                            Avaliar
+                                        </button>
                                     </div>
                                 );
                             })()}
