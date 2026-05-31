@@ -981,7 +981,7 @@
                 setProcessing(true);
                 setError('');
                 try {
-                    var template = templates[selectedTemplate];
+                    var template = templates.find(t => t.id === selectedTemplate);
 
                     const toBlob = (photo) => {
                         const base64 = photo.preview;
@@ -1063,7 +1063,7 @@
                 if (photos.length === 0) return;
                 setProcessingAll(true);
                 setError('');
-                const template = templates[selectedTemplate];
+                const template = templates.find(t => t.id === selectedTemplate);
                 const total = photos.length;
                 setProcessingAllProgress({ current: 0, total });
 
@@ -1517,19 +1517,19 @@
                                     Voltar para Upload
                                 </button>
 
-                                {(templates[selectedTemplate].isSocialVideo || templates[selectedTemplate].isMarketplaceVideo || templates[selectedTemplate].is360Video) ? (
+                                {(templates.find(t => t.id === selectedTemplate).isSocialVideo || templates.find(t => t.id === selectedTemplate).isMarketplaceVideo || templates.find(t => t.id === selectedTemplate).is360Video) ? (
                                     <React.Fragment>
                                         <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{border:'1.5px dashed var(--ds-brand-complementary)', background:'rgba(91,88,143,0.04)'}}>
                                             <div className="flex items-center gap-2">
                                                 <span className="material-symbols-outlined text-[20px]" style={{color:'var(--ds-brand-complementary)', fontVariationSettings:"'FILL' 1"}}>play_circle</span>
                                                 <p className="text-[14px] font-semibold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>
-                                                    {templates[selectedTemplate].isMarketplaceVideo ? 'Vídeo para Marketplace' : templates[selectedTemplate].is360Video ? 'Vídeo 360 Dinâmico' : 'Vídeo para Redes Sociais'}
+                                                    {templates.find(t => t.id === selectedTemplate).isMarketplaceVideo ? 'Vídeo para Marketplace' : templates.find(t => t.id === selectedTemplate).is360Video ? 'Vídeo 360 Dinâmico' : 'Vídeo para Redes Sociais'}
                                                 </p>
                                             </div>
                                             <p className="text-[12px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>
-                                                {templates[selectedTemplate].isMarketplaceVideo
+                                                {templates.find(t => t.id === selectedTemplate).isMarketplaceVideo
                                                     ? 'Gera um vídeo 16:9 de 15s para exibição nos portais de anúncio.'
-                                                    : templates[selectedTemplate].is360Video
+                                                    : templates.find(t => t.id === selectedTemplate).is360Video
                                                     ? 'Gera um vídeo 16:9 de 15s com rotação 360° ao redor do veículo em ambiente de estúdio.'
                                                     : 'Gera um vídeo 9:16 de 15s com slideshow das fotos, textos do veículo e CTA final.'}
                                             </p>
@@ -1549,16 +1549,16 @@
                                                 </div>
                                             )}
                                             <div className="flex flex-wrap gap-2">
-                                                {(templates[selectedTemplate].isMarketplaceVideo
+                                                {(templates.find(t => t.id === selectedTemplate).isMarketplaceVideo
                                                     ? ['Webmotors', 'OLX', 'iCarros']
-                                                    : templates[selectedTemplate].is360Video
+                                                    : templates.find(t => t.id === selectedTemplate).is360Video
                                                     ? ['Rotação 360°', 'Estúdio', 'Todos os ângulos']
                                                     : ['TikTok', 'Reels', 'Stories']
                                                 ).map(tag => (
                                                     <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{background:'rgba(91,88,143,0.1)', color:'var(--ds-brand-complementary)'}}>{tag}</span>
                                                 ))}
                                                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{background:'var(--ds-bg-page)', color:'var(--ds-text-secondary)'}}>
-                                                    {templates[selectedTemplate].isSocialVideo ? '9:16 · 15s' : '16:9 · 15s'}
+                                                    {templates.find(t => t.id === selectedTemplate).isSocialVideo ? '9:16 · 15s' : '16:9 · 15s'}
                                                 </span>
                                             </div>
                                         </div>
@@ -1585,7 +1585,7 @@
                                                 </a>
                                             </div>
                                         )}
-                                        <button onClick={templates[selectedTemplate].isMarketplaceVideo ? generateMarketplaceVideo : templates[selectedTemplate].is360Video ? generate360Video : generateSocialVideo}
+                                        <button onClick={templates.find(t => t.id === selectedTemplate).isMarketplaceVideo ? generateMarketplaceVideo : templates.find(t => t.id === selectedTemplate).is360Video ? generate360Video : generateSocialVideo}
                                             disabled={videoStatus === 'generating' || photos.length === 0}
                                             className="w-full h-12 text-white text-[14px] font-semibold leading-[130%] rounded-[8px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                                             style={videoStatus === 'generating' || photos.length === 0 ? {background:'var(--ds-neutral-high-medium)', cursor:'not-allowed'} : {background:'linear-gradient(135deg, var(--ds-brand-complementary) 0%, #41408F 100%)', boxShadow:'0 8px 16px rgba(91,88,143,0.24)'}}>
@@ -1674,7 +1674,7 @@
                         {/* ── Right Preview ── */}
                         <div className="md:col-span-9 flex flex-col gap-4">
 
-                            {(templates[selectedTemplate].isSocialVideo || templates[selectedTemplate].isMarketplaceVideo || templates[selectedTemplate].is360Video) ? (
+                            {(templates.find(t => t.id === selectedTemplate).isSocialVideo || templates.find(t => t.id === selectedTemplate).isMarketplaceVideo || templates.find(t => t.id === selectedTemplate).is360Video) ? (
                                 /* ── Painel de vídeo grande ── */
                                 <div className="flex flex-col gap-4">
                                     {videoStatus === null && (
@@ -1765,11 +1765,11 @@
                                 </div>
                                 <div className="absolute inset-0 pointer-events-none" style={{clipPath:"inset(0 0 0 " + sliderPos + "%)"}}>
                                     {afterSrc ? (
-                                        <div className="absolute inset-0" style={{background: templates[selectedTemplate].bg}}>
-                                            <img src={afterSrc} alt="Depois" className="w-full h-full object-contain" style={{background: templates[selectedTemplate].bg}} />
+                                        <div className="absolute inset-0" style={{background: templates.find(t => t.id === selectedTemplate).bg}}>
+                                            <img src={afterSrc} alt="Depois" className="w-full h-full object-contain" style={{background: templates.find(t => t.id === selectedTemplate).bg}} />
                                         </div>
                                     ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{background: templates[selectedTemplate].bg}}>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{background: templates.find(t => t.id === selectedTemplate).bg}}>
                                             <span className="material-symbols-outlined text-white/40 text-[48px]">auto_fix_high</span>
                                             <p className="text-white/60 text-[12px] font-medium text-center px-4">Clique em "Remover Fundo" para ver o resultado</p>
                                         </div>
