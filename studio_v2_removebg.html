@@ -279,9 +279,139 @@
         const getUsage = () => { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{"fotos":0,"videos":0}'); } catch(e) { return {fotos:0, videos:0}; } };
         const incrementUsage = (type, n = 1) => { try { const u = getUsage(); u[type] = (u[type] || 0) + n; localStorage.setItem(USAGE_KEY, JSON.stringify(u)); } catch(e) {} };
 
+        // ── Feedback ──────────────────────────────────────────────────────────
+        const FEEDBACK_URL = 'https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec';
+
+        const sendFeedback = async (data) => {
+            try {
+                await fetch(FEEDBACK_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } catch(e) { console.error('Feedback error:', e); }
+        };
+
+        const FeedbackModal = ({ onClose, tela = '', tipo = '' }) => {
+            const [nota, setNota] = React.useState(0);
+            const [hover, setHover] = React.useState(0);
+            const [feedback, setFeedback] = React.useState('');
+            const [economizou, setEconomizou] = React.useState('');
+            const [usaria, setUsaria] = React.useState('');
+            const [indicaria, setIndicaria] = React.useState('');
+            const [enviado, setEnviado] = React.useState(false);
+            const [enviando, setEnviando] = React.useState(false);
+
+            const handleEnviar = async () => {
+                if (!nota) return;
+                setEnviando(true);
+                await sendFeedback({ nota, feedback, economizou_tempo: economizou, usaria_novamente: usaria, indicaria, tela, tipo });
+                setEnviado(true);
+                setEnviando(false);
+                setTimeout(onClose, 1800);
+            };
+
+            if (enviado) return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.5)'}}>
+                    <div className="flex flex-col items-center gap-4 p-8 rounded-[20px] text-center" style={{background:'var(--ds-bg-card)', maxWidth:320}}>
+                        <div className="w-16 h-16 rounded-full wm-gradient flex items-center justify-center" style={{boxShadow:'0 8px 24px rgba(226,36,70,0.24)'}}>
+                            <span className="material-symbols-outlined text-white text-3xl" style={{fontVariationSettings:"'FILL' 1"}}>favorite</span>
+                        </div>
+                        <p className="text-[18px] font-bold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Obrigado pelo feedback!</p>
+                        <p className="text-[13px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Sua opinião é essencial para melhorarmos o Estúdio.</p>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}}>
+                    <div className="w-full flex flex-col gap-5" style={{background:'var(--ds-bg-card)', borderRadius:'20px', maxWidth:420, padding:'28px 24px', boxShadow:'0 24px 64px rgba(0,0,0,0.2)'}}>
+
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-[18px] font-bold leading-[130%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Como foi sua experiência?</p>
+                                <p className="text-[13px] leading-[140%] mt-1" style={{color:'var(--ds-text-secondary)'}}>Sua opinião melhora o Estúdio para todos.</p>
+                            </div>
+                            <button onClick={onClose} className="p-1 rounded-[8px] hover:opacity-70 transition-all" style={{color:'var(--ds-neutral-high-medium)'}}>
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+
+                        {/* Estrelas */}
+                        <div>
+                            <p className="text-[12px] font-semibold uppercase tracking-wider mb-3" style={{color:'var(--ds-text-secondary)'}}>Sua nota</p>
+                            <div className="flex gap-2">
+                                {[1,2,3,4,5].map(n => (
+                                    <button key={n}
+                                        onClick={() => setNota(n)}
+                                        onMouseEnter={() => setHover(n)}
+                                        onMouseLeave={() => setHover(0)}
+                                        className="transition-all active:scale-90"
+                                        style={{fontSize:36, lineHeight:1, color: (hover || nota) >= n ? '#FFB800' : 'var(--ds-neutral-high-medium)'}}>
+                                        ★
+                                    </button>
+                                ))}
+                            </div>
+                            {nota > 0 && (
+                                <p className="text-[12px] mt-1 leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>
+                                    {['','Ruim','Regular','Bom','Muito bom','Excelente!'][nota]}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Perguntas rápidas */}
+                        <div className="flex flex-col gap-3">
+                            <p className="text-[12px] font-semibold uppercase tracking-wider" style={{color:'var(--ds-text-secondary)'}}>Perguntas rápidas <span className="font-normal normal-case tracking-normal" style={{color:'var(--ds-text-disabled)'}}>— opcional</span></p>
+                            {[
+                                { label: 'Economizou seu tempo?', state: economizou, set: setEconomizou },
+                                { label: 'Usaria novamente?', state: usaria, set: setUsaria },
+                                { label: 'Indicaria para outro lojista?', state: indicaria, set: setIndicaria },
+                            ].map(({ label, state, set }) => (
+                                <div key={label} className="flex items-center justify-between">
+                                    <span className="text-[13px] leading-[140%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>{label}</span>
+                                    <div className="flex gap-2">
+                                        {['Sim','Não'].map(op => (
+                                            <button key={op} onClick={() => set(state === op ? '' : op)}
+                                                className="h-7 px-3 rounded-full text-[11px] font-semibold transition-all"
+                                                style={state === op
+                                                    ? {background:'var(--ds-brand-primary)', color:'white'}
+                                                    : {border:'1px solid var(--ds-border-default)', color:'var(--ds-text-secondary)', background:'transparent'}}>
+                                                {op}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Campo livre */}
+                        <div>
+                            <p className="text-[12px] font-semibold uppercase tracking-wider mb-2" style={{color:'var(--ds-text-secondary)'}}>Comentário <span className="font-normal normal-case tracking-normal" style={{color:'var(--ds-text-disabled)'}}>— opcional</span></p>
+                            <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={3}
+                                placeholder="O que poderia melhorar? O que mais gostou?"
+                                className="w-full text-[13px] rounded-[8px] p-3 outline-none resize-none leading-[140%]"
+                                style={{border:'1px solid var(--ds-border-default)', background:'var(--ds-bg-page)', color:'var(--ds-neutral-low-darker, #2F2F32)'}} />
+                        </div>
+
+                        {/* Botão enviar */}
+                        <button onClick={handleEnviar} disabled={!nota || enviando}
+                            className="w-full h-12 text-white text-[14px] font-semibold rounded-[8px] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                            style={!nota || enviando
+                                ? {background:'var(--ds-neutral-high-medium)', cursor:'not-allowed'}
+                                : {background:'linear-gradient(135deg, #E22446 0%, #AB0B33 100%)', boxShadow:'0 8px 16px rgba(226,36,70,0.24)'}}>
+                            {enviando ? 'Enviando...' : 'Enviar feedback'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
         const TopBar = () => {
             const navigate = useNavigate();
             const location = useLocation();
+            const [showFeedback, setShowFeedback] = React.useState(false);
             const pendingVideos = React.useMemo(() => {
                 try {
                     const videos = JSON.parse(localStorage.getItem('wm_studio_videos') || '[]');
@@ -324,6 +454,14 @@
                             </div>
                         </div>
 
+                        {/* Feedback */}
+                        <button onClick={() => setShowFeedback(true)}
+                            className="flex items-center gap-1.5 h-9 px-3 rounded-[8px] text-[12px] font-semibold transition-all hover:opacity-90"
+                            style={{border:'1px solid var(--ds-border-default)', color:'var(--ds-text-secondary)', background:'var(--ds-bg-card)'}}>
+                            <span className="material-symbols-outlined text-[15px]" style={{color:'#FFB800', fontVariationSettings:"'FILL' 1"}}>star</span>
+                            <span className="hidden sm:inline">Feedback</span>
+                        </button>
+
                         {/* Meus Vídeos */}
                         <button
                             onClick={() => navigate('/meus-videos')}
@@ -353,6 +491,7 @@
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white wm-gradient">T</div>
                     </div>
                 </header>
+                {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} tela={location.pathname} tipo="manual" />}
             );
         };
 
@@ -673,6 +812,8 @@
             const [error, setError] = React.useState('');
             const [videoTaskId, setVideoTaskId] = React.useState(null);
             const [videoStatus, setVideoStatus] = React.useState(null); // null | 'generating' | 'succeeded' | 'failed'
+            const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
+            const [feedbackTipo, setFeedbackTipo] = React.useState('');
             const [videoUrl, setVideoUrl] = React.useState(null);
             const videoPollingRef = React.useRef(null);
             const isDraggingSlider = React.useRef(false);
@@ -1108,6 +1249,7 @@
             return (
                 <div className="min-h-screen" style={{background:'var(--ds-bg-page)'}}>
                     <TopBar />
+                    {showFeedbackModal && <FeedbackModal onClose={() => setShowFeedbackModal(false)} tela="/studio" tipo={feedbackTipo} />}
                     {/* Stepper DS */}
                     <div className="flex items-center justify-center py-4 md:py-5 gap-3 md:gap-4" style={{borderBottom:'1px solid var(--ds-border-default)', background:'var(--ds-bg-card)'}}>
                         {[{n:1,label:'Upload',done:true},{n:2,label:'Estúdio',active:true},{n:3,label:'Anúncio',active:false}].map((s, idx) => (
@@ -1403,6 +1545,7 @@
                                         )}
                                         {currentProcessed && (
                                             <a href={currentProcessed} download={"foto_sem_fundo_" + (activePhoto + 1) + ".png"}
+                                                onClick={() => { setFeedbackTipo('foto'); setTimeout(() => setShowFeedbackModal(true), 1500); }}
                                                 className="w-full h-12 text-[14px] font-semibold leading-[130%] rounded-[8px] flex items-center justify-center gap-2 transition-all hover:opacity-90"
                                                 style={{border:'1.5px solid var(--ds-brand-primary)', color:'var(--ds-brand-primary)'}}>
                                                 <span className="material-symbols-outlined text-[16px]">download</span>
@@ -1423,6 +1566,7 @@
                                                         await new Promise(r => setTimeout(r, 400));
                                                     } catch(e) { console.error(e); }
                                                 }
+                                                setFeedbackTipo('fotos'); setTimeout(() => setShowFeedbackModal(true), 1500);
                                             }}
                                             className="w-full h-12 text-white text-[14px] font-semibold leading-[130%] rounded-[8px] flex items-center justify-center gap-2 transition-all hover:opacity-90"
                                             style={{background:'var(--ds-neutral-low-darker, #2F2F32)'}}>
@@ -1480,6 +1624,7 @@
                                             <div className="flex gap-3">
                                                 <a href={'https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(videoUrl)}
                                                     download="video_redes_sociais.mp4"
+                                                    onClick={() => { setFeedbackTipo('video'); setTimeout(() => setShowFeedbackModal(true), 1500); }}
                                                     className="flex-1 h-12 flex items-center justify-center gap-2 text-white text-[14px] font-semibold rounded-[8px] transition-all hover:opacity-90"
                                                     style={{background:'var(--ds-neutral-low-darker, #2F2F32)'}}>
                                                     <span className="material-symbols-outlined text-[18px]">download</span>
@@ -2164,6 +2309,7 @@
         const MeusVideosScreen = () => {
             const navigate = useNavigate();
             const [videos, setVideos] = React.useState(loadVideosGlobal);
+            const [showMVFeedback, setShowMVFeedback] = React.useState(false);
             const pollingRefs = React.useRef({});
 
             const formatDate = (iso) => {
@@ -2218,6 +2364,7 @@
             return (
                 <div className="min-h-screen" style={{background:'var(--ds-bg-page)'}}>
                     <TopBar />
+                    {showMVFeedback && <FeedbackModal onClose={() => setShowMVFeedback(false)} tela="/meus-videos" tipo="video" />}
                     <main className="px-4 md:px-8 lg:px-[72px] py-8 max-w-[1440px] mx-auto w-full">
 
                         {/* Header */}
@@ -2336,6 +2483,7 @@
                                         {v.status === 'succeeded' && v.video_url && (
                                             <a href={'https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(v.video_url)}
                                                 download="video_redes_sociais.mp4"
+                                                onClick={() => setTimeout(() => setShowMVFeedback(true), 1500)}
                                                 className="w-full h-9 flex items-center justify-center gap-1.5 text-white text-[12px] font-semibold rounded-[8px] transition-all hover:opacity-90"
                                                 style={{background:'linear-gradient(135deg, var(--ds-brand-complementary) 0%, #41408F 100%)'}}>
                                                 <span className="material-symbols-outlined text-[15px]">download</span>
