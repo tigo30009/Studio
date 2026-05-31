@@ -317,6 +317,82 @@ app.post('/generate-marketplace-video', upload.array('images', 20), async (req, 
   }
 });
 
+// ─── Bytedance Seedance 360 video generation ─────────────────────────────────
+app.post('/generate-360-video', upload.array('images', 20), async (req, res) => {
+  const tmpFiles = [];
+  try {
+    const apiKey = process.env.ARK_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'ARK_API_KEY não configurada.' });
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Nenhuma imagem enviada.' });
+
+    const host = req.headers.host || 'studio-xefd.onrender.com';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+
+    console.log(`[generate-360-video] Processing ${req.files.length} images (API limit: 9)`);
+
+    const filesToProcess = req.files.slice(0, 9);
+
+    const imageUrls = [];
+    for (const file of filesToProcess) {
+      const filename = `v360_${randomUUID()}.jpg`;
+      const filepath = path.join(os.tmpdir(), filename);
+      fs.writeFileSync(filepath, file.buffer);
+      tmpFiles.push(filepath);
+      const url = `${protocol}://${host}/tmp/${filename}`;
+      imageUrls.push(url);
+      console.log(`[generate-360-video] Saved ${filename} (${(file.buffer.length/1024).toFixed(0)}KB)`);
+    }
+
+    const prompt = `A smooth, continuous 360-degree camera rotation around the static car shown in the provided images. The car and its wheels must remain completely static. Use the uploaded multi-angle photos to accurately construct the front, right side, rear, and left side views. Strictly preserve 100% fidelity to the car's current condition across all angles, intentionally reproducing all visible wear, scratches, dents, and cosmetic imperfections exactly as photographed, ensuring zero beautification. Replace the original backgrounds with a clean, bright-light studio environment, maintaining consistent and realistic lighting on the vehicle throughout the rotation.`;
+
+    const content = [
+      { type: 'text', text: prompt },
+      ...imageUrls.map(url => ({
+        type: 'image_url',
+        image_url: { url },
+        role: 'reference_image',
+      })),
+    ];
+
+    const payload = {
+      model: 'dreamina-seedance-2-0-fast-260128',
+      content,
+      generate_audio: false,
+      ratio: '16:9',
+      duration: 15,
+      watermark: false,
+    };
+
+    const response = await fetch('https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('Seedance 360 task error:', err);
+      return res.status(response.status).json({ error: err.message || 'Erro ao criar task de vídeo 360.' });
+    }
+
+    const data = await response.json();
+    const taskId = data.id;
+    if (!taskId) return res.status(500).json({ error: 'Task ID não retornado pela API.' });
+
+    console.log('Seedance 360 task created:', taskId);
+    res.json({ task_id: taskId });
+
+    setTimeout(() => {
+      tmpFiles.forEach(f => { try { fs.unlinkSync(f); } catch(e) {} });
+    }, 5 * 60 * 1000);
+
+  } catch (err) {
+    tmpFiles.forEach(f => { try { fs.unlinkSync(f); } catch(e) {} });
+    console.error('generate-360-video error:', err);
+    res.status(500).json({ error: 'Erro interno: ' + err.message });
+  }
+});
+
 // ─── Polling endpoint — check video task status ───────────────────────────────
 app.get('/video-status/:taskId', async (req, res) => {
   try {
