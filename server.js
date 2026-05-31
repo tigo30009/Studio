@@ -182,7 +182,10 @@ app.post('/generate-video', upload.array('images', 20), async (req, res) => {
     }
 
     // Build content array: text prompt + reference images
-    const prompt = `15–20 second vertical 9:16 car promotional video slideshow. Open with 10 seconds of exterior car shots using smooth transitions and motion blur. Follow with interior shots for 5 seconds if available. Overlay bold text callouts highlighting the car's make, model, year, and key features. Close with a 3-second branded outro with large centered text: "Venha agora mesmo visitar a nossa loja". Add upbeat background music. Keep pacing energetic and social-media native for TikTok and Reels.`;
+    const mascararPlaca = req.body?.mascararPlaca !== 'false';
+    const blurText = mascararPlaca ? ' Blur the vehicle\'s license plate for privacy.' : '';
+
+    const prompt = `15–20 second vertical 9:16 car promotional video slideshow. Open with 10 seconds of exterior car shots using smooth transitions and motion blur. Follow with interior shots for 5 seconds if available. Overlay bold text callouts highlighting the car's make, model, year, and key features. Close with a 3-second branded outro with large centered text: "Venha agora mesmo visitar a nossa loja". Add upbeat background music. Keep pacing energetic and social-media native for TikTok and Reels.${blurText}`;
 
     const content = [
       { type: 'text', text: prompt },
@@ -260,7 +263,10 @@ app.post('/generate-marketplace-video', upload.array('images', 20), async (req, 
       console.log(`[generate-marketplace-video] Saved ${filename} (${(file.buffer.length/1024).toFixed(0)}KB)`);
     }
 
-    const prompt = `Create a 15-second 16:9 vehicle presentation video using the provided photos. Open with smooth exterior shots (full body, front, rear, and side angles) using steady transitions. If only exterior photos are provided, use the entire duration for them. If interior photos exist, dedicate the final 5 seconds to showcasing the dashboard, seats, and key features. Maintain 100% fidelity to the source images. Accurately reproduce the exact current condition of the vehicle, intentionally including any visible wear, scratches, dents, or cosmetic imperfections present in the photos. Keep the original color, body shape, and all specific details exactly as photographed. Blur the vehicle's license plate for privacy. Replace the original backgrounds with a clean, bright-light studio environment throughout the video. Overlay clean text callouts in Brazilian Portuguese showing the make, model, year, mileage, and transmission. Include subtle background music and a male voiceover in Brazilian Portuguese describing the key highlights in a steady, automotive-marketplace tone. End with a clean outro featuring the centered text: 'Consulte condições de financiamento'.`;
+    const mascararPlacaMkt = req.body?.mascararPlaca !== 'false';
+    const blurTextMkt = mascararPlacaMkt ? ' Blur the vehicle\'s license plate for privacy.' : '';
+
+    const prompt = `Create a 15-second 16:9 vehicle presentation video using the provided photos. Open with smooth exterior shots (full body, front, rear, and side angles) using steady transitions. If only exterior photos are provided, use the entire duration for them. If interior photos exist, dedicate the final 5 seconds to showcasing the dashboard, seats, and key features. Maintain 100% fidelity to the source images. Accurately reproduce the exact current condition of the vehicle, intentionally including any visible wear, scratches, dents, or cosmetic imperfections present in the photos. Keep the original color, body shape, and all specific details exactly as photographed.${blurTextMkt} Replace the original backgrounds with a clean, bright-light studio environment throughout the video. Overlay clean text callouts in Brazilian Portuguese showing the make, model, year, mileage, and transmission. Include subtle background music and a male voiceover in Brazilian Portuguese describing the key highlights in a steady, automotive-marketplace tone. End with a clean outro featuring the centered text: 'Consulte condições de financiamento'.`;
 
     const content = [
       { type: 'text', text: prompt },

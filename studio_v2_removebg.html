@@ -832,6 +832,7 @@
             const [processingAllProgress, setProcessingAllProgress] = React.useState({ current: 0, total: 0 });
             const [processedImgs, setProcessedImgs] = React.useState({});
             const [error, setError] = React.useState('');
+            const [mascararPlaca, setMascararPlaca] = React.useState(true);
             const [videoTaskId, setVideoTaskId] = React.useState(null);
             const [videoStatus, setVideoStatus] = React.useState(null); // null | 'generating' | 'succeeded' | 'failed'
             const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
@@ -1150,6 +1151,7 @@
                         const blob = new Blob([ab], { type: mimeType });
                         formData.append('images', blob, photo.name || ('foto_' + (i+1) + '.jpg'));
                     }
+                    formData.append('mascararPlaca', mascararPlaca ? 'true' : 'false');
 
                     const res = await fetch('https://studio-xefd.onrender.com/generate-video', { method: 'POST', body: formData });
                     if (!res.ok) {
@@ -1216,6 +1218,7 @@
                         const blob = new Blob([ab], { type: mimeType });
                         formData.append('images', blob, (p.name || ('photo' + i + '.jpg')));
                     }
+                    formData.append('mascararPlaca', mascararPlaca ? 'true' : 'false');
                     const thumbnail = photos[0] ? photos[0].preview : null;
 
                     const res = await fetch('https://studio-xefd.onrender.com/generate-marketplace-video', { method: 'POST', body: formData });
@@ -1367,7 +1370,7 @@
                                     <p className="text-[12px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>Ocultar detalhes sensíveis automaticamente</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
-                                    <input defaultChecked className="sr-only peer" type="checkbox" />
+                                    <input checked={mascararPlaca} onChange={e => setMascararPlaca(e.target.checked)} className="sr-only peer" type="checkbox" />
                                     <div className="w-11 h-6 rounded-full peer-checked:bg-[#E22446] bg-[#D9D9D9] transition-colors" style={{position:'relative'}}>
                                         <div className="absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5" style={{boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}></div>
                                     </div>
