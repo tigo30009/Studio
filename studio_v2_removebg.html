@@ -442,6 +442,7 @@
             const usage = React.useMemo(() => getUsage(), [location.pathname]);
 
             return (
+                <React.Fragment>
                 <header style={{background:'var(--ds-bg-card)', borderBottom:'1px solid var(--ds-border-default)', boxShadow:'var(--shadow-ds-level-1)'}}
                     className="h-14 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-40">
 
@@ -512,6 +513,7 @@
                     </div>
                 </header>
                 {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} tela={location.pathname} tipo="manual" />}
+            </React.Fragment>
             );
         };
 
