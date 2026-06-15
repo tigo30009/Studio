@@ -433,16 +433,11 @@
             const navigate = useNavigate();
             const location = useLocation();
             const [showFeedback, setShowFeedback] = React.useState(false);
-            const [pendingVideos, setPendingVideos] = React.useState(0);
-            React.useEffect(() => {
-                const checkPending = async () => {
-                    try {
-                        const res = await fetch('https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec?action=getMedia');
-                        const data = await res.json();
-                        if (data.success) setPendingVideos(data.data.filter(v => v.status === 'generating').length);
-                    } catch(e) {}
-                };
-                checkPending();
+            const pendingVideos = React.useMemo(() => {
+                try {
+                    const cached = JSON.parse(localStorage.getItem( + CACHE_KEY + ) || '[]');
+                    return cached.filter(v => v.status === 'generating').length;
+                } catch(e) { return 0; }
             }, [location.pathname]);
 
             const usage = React.useMemo(() => getUsage(), [location.pathname]);
@@ -1193,6 +1188,18 @@
             };
 
             const saveVideoToApi = async (videoObj) => {
+                // Salva no cache local imediatamente
+                try {
+                    const cached = JSON.parse(localStorage.getItem( + CACHE_KEY + ) || '[]');
+                    const exists = cached.findIndex(v => v.task_id === videoObj.task_id);
+                    if (exists >= 0) {
+                        cached[exists] = { ...cached[exists], ...videoObj };
+                    } else {
+                        cached.unshift(videoObj);
+                    }
+                    localStorage.setItem( + CACHE_KEY + , JSON.stringify(cached));
+                } catch(e) {}
+                // Salva na API em background
                 try {
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
@@ -2454,17 +2461,25 @@
 
         const MV_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec';
 
+        const GALERIA_CACHE_KEY =  + CACHE_KEY + ;
+        const loadCache = () => { try { return JSON.parse(localStorage.getItem(GALERIA_CACHE_KEY) || '[]'); } catch(e) { return []; } };
+        const saveCache = (list) => { try { localStorage.setItem(GALERIA_CACHE_KEY, JSON.stringify(list)); } catch(e) {} };
+
         const MeusVideosScreen = () => {
             const navigate = useNavigate();
-            const [videos, setVideos] = React.useState([]);
-            const [loadingVideos, setLoadingVideos] = React.useState(true);
+            const cached = loadCache();
+            const [videos, setVideos] = React.useState(cached);
+            const [loadingVideos, setLoadingVideos] = React.useState(cached.length === 0);
 
             React.useEffect(() => {
                 const fetchVideos = async () => {
                     try {
                         const res = await fetch(MV_APPS_SCRIPT_URL + '?action=getMedia');
                         const data = await res.json();
-                        if (data.success) setVideos(data.data);
+                        if (data.success) {
+                            setVideos(data.data);
+                            saveCache(data.data);
+                        }
                     } catch(e) { console.error('fetchVideos error:', e); }
                     finally { setLoadingVideos(false); }
                 };
