@@ -435,8 +435,7 @@
             const [showFeedback, setShowFeedback] = React.useState(false);
             const pendingVideos = React.useMemo(() => {
                 try {
-                    const cached = JSON.parse(localStorage.getItem('wm_galeria_cache') || '[]');
-                    return cached.filter(v => v.status === 'generating').length;
+                    return JSON.parse(localStorage.getItem('wm_studio_videos') || '[]').filter(v => v.status === 'generating').length;
                 } catch(e) { return 0; }
             }, [location.pathname]);
 
@@ -1058,7 +1057,7 @@
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
                         incrementUsage('fotos');
                         setSliderPos(50);
-                        savePhotoToApi({ id: Date.now().toString(), url: imageUrl, formato: template.name, titulo: template.name, criadoEm: new Date().toISOString() });
+                        savePhotoToLocal({ id: Date.now().toString(), url: imageUrl, formato: template.name, titulo: template.name, criadoEm: new Date().toISOString() });
 
                     } else if (template.isBytedance) {
                         // --- Bytedance Seedream flow ---
@@ -1072,7 +1071,7 @@
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
                         incrementUsage('fotos');
                         setSliderPos(50);
-                        savePhotoToApi({ id: Date.now().toString(), url: imageUrl, formato: 'Bytedance', titulo: 'Bytedance', criadoEm: new Date().toISOString() });
+                        savePhotoToLocal({ id: Date.now().toString(), url: imageUrl, formato: 'Bytedance', titulo: 'Bytedance', criadoEm: new Date().toISOString() });
 
                     } else {
                         // --- Remove.bg flow (original) ---
@@ -1106,7 +1105,7 @@
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: finalUrl }));
                         incrementUsage('fotos');
                         setSliderPos(50);
-                        savePhotoToApi({ id: Date.now().toString(), url: finalUrl, formato: template.name || 'Remove.bg', titulo: template.name || 'Remove.bg', criadoEm: new Date().toISOString() });
+                        savePhotoToLocal({ id: Date.now().toString(), url: finalUrl, formato: template.name || 'Remove.bg', titulo: template.name || 'Remove.bg', criadoEm: new Date().toISOString() });
                     }
                 } catch (err) {
                     setError(err.message);
@@ -1146,7 +1145,7 @@
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
                             setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
                             incrementUsage('fotos');
-                            savePhotoToApi({ id: Date.now().toString() + idx, url: imageUrl, formato: template.name, titulo: template.name, criadoEm: new Date().toISOString() });
+                            savePhotoToLocal({ id: Date.now().toString() + idx, url: imageUrl, formato: template.name, titulo: template.name, criadoEm: new Date().toISOString() });
                         } else if (template.isBytedance) {
                             const uploadForm = new FormData();
                             uploadForm.append('image', blob, photo.name || 'photo.jpg');
@@ -1157,7 +1156,7 @@
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
                             setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
                             incrementUsage('fotos');
-                            savePhotoToApi({ id: Date.now().toString() + idx, url: imageUrl, formato: 'Bytedance', titulo: 'Bytedance', criadoEm: new Date().toISOString() });
+                            savePhotoToLocal({ id: Date.now().toString() + idx, url: imageUrl, formato: 'Bytedance', titulo: 'Bytedance', criadoEm: new Date().toISOString() });
                         } else {
                             const formData = new FormData();
                             formData.append('image', blob, photo.name || 'photo.jpg');
@@ -1169,7 +1168,7 @@
                             if (template.studioImg) { finalUrl = await composeWithBackground(carPngUrl, template.studioImg); }
                             setProcessedImgs(prev => ({ ...prev, [idx]: finalUrl }));
                             incrementUsage('fotos');
-                            savePhotoToApi({ id: Date.now().toString() + idx, url: finalUrl, formato: template.name || 'Remove.bg', titulo: template.name || 'Remove.bg', criadoEm: new Date().toISOString() });
+                            savePhotoToLocal({ id: Date.now().toString() + idx, url: finalUrl, formato: template.name || 'Remove.bg', titulo: template.name || 'Remove.bg', criadoEm: new Date().toISOString() });
                         }
                     } catch (err) {
                         setError('Foto ' + (idx+1) + ': ' + err.message);
@@ -1182,55 +1181,18 @@
                 setSliderPos(50);
             };
 
-            // ── Video API helpers (Google Drive via Apps Script) ────────────────
-            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec';
-
-            const loadVideos = async () => {
+            // ── Video localStorage helpers ──────────────────────────────────
+            const VIDEOS_KEY = 'wm_studio_videos';
+            const PHOTOS_KEY = 'wm_studio_photos';
+            const loadVideos = () => { try { return JSON.parse(localStorage.getItem(VIDEOS_KEY) || '[]'); } catch(e) { return []; } };
+            const saveVideos = (list) => { try { localStorage.setItem(VIDEOS_KEY, JSON.stringify(list)); } catch(e) {} };
+            const savePhotoToLocal = (photoObj) => {
                 try {
-                    const res = await fetch(APPS_SCRIPT_URL + '?action=getMedia');
-                    const data = await res.json();
-                    return data.success ? data.data : [];
-                } catch(e) { console.error('loadVideos error:', e); return []; }
-            };
-
-            const savePhotoToApi = async (photoObj) => {
-                // Salva no cache local imediatamente
-                try {
-                    const cached = JSON.parse(localStorage.getItem('wm_galeria_photos_cache') || '[]');
-                    cached.unshift(photoObj);
-                    if (cached.length > 200) cached.splice(200);
-                    localStorage.setItem('wm_galeria_photos_cache', JSON.stringify(cached));
+                    const list = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '[]');
+                    list.unshift(photoObj);
+                    if (list.length > 200) list.splice(200);
+                    localStorage.setItem(PHOTOS_KEY, JSON.stringify(list));
                 } catch(e) {}
-                // Salva na API em background
-                try {
-                    await fetch('https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...photoObj, tipo: 'saveMedia', mediaType: 'image' })
-                    });
-                } catch(e) { console.error('savePhoto error:', e); }
-            };
-
-            const saveVideoToApi = async (videoObj) => {
-                // Salva no cache local imediatamente
-                try {
-                    const cached = JSON.parse(localStorage.getItem('wm_galeria_cache') || '[]');
-                    const exists = cached.findIndex(v => v.task_id === videoObj.task_id);
-                    if (exists >= 0) {
-                        cached[exists] = { ...cached[exists], ...videoObj };
-                    } else {
-                        cached.unshift(videoObj);
-                    }
-                    localStorage.setItem('wm_galeria_cache', JSON.stringify(cached));
-                } catch(e) {}
-                // Salva na API em background
-                try {
-                    await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...videoObj, tipo: 'saveMedia', mediaType: 'video' })
-                    });
-                } catch(e) { console.error('saveVideo error:', e); }
             };
 
             const generateSocialVideo = async () => {
@@ -1265,9 +1227,9 @@
                     const taskId = data.task_id;
                     setVideoTaskId(taskId);
 
-                    // Save to API
                     const thumbnail = photos[0] ? photos[0].preview : null;
-                    await saveVideoToApi({ id: taskId, url: null, formato: 'social', titulo: 'Redes Sociais', thumbnail, task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null });
+                    const existing = loadVideos();
+                    saveVideos([{ task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, thumbnail }, ...existing]);
 
                     // Start polling
                     const poll = async () => {
@@ -1279,7 +1241,8 @@
                                 setVideoStatus('succeeded');
                                 setVideoUrl(statusData.video_url);
                                 clearInterval(videoPollingRef.current);
-                                await saveVideoToApi({ id: taskId, url: statusData.video_url, formato: 'social', titulo: 'Redes Sociais', thumbnail, task_id: taskId, created_at: new Date().toISOString(), status: 'succeeded', video_url: statusData.video_url });
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'succeeded', video_url: statusData.video_url } : v);
+                                saveVideos(updated);
                                 incrementUsage('videos');
                             } else if (s === 'failed') {
                                 setVideoStatus('failed');
@@ -1325,7 +1288,8 @@
                     const data = await res.json();
                     const taskId = data.task_id;
 
-                    await saveVideoToApi({ id: taskId, url: null, formato: 'marketplace', titulo: 'Marketplace', thumbnail, task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, type: 'marketplace' });
+                    const existing = loadVideos();
+                    saveVideos([{ task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, thumbnail, type: 'marketplace' }, ...existing]);
 
                     const poll = async () => {
                         try {
@@ -1336,7 +1300,8 @@
                                 setVideoStatus('succeeded');
                                 setVideoUrl(statusData.video_url);
                                 clearInterval(videoPollingRef.current);
-                                await saveVideoToApi({ id: taskId, url: statusData.video_url, formato: 'social', titulo: 'Redes Sociais', thumbnail, task_id: taskId, created_at: new Date().toISOString(), status: 'succeeded', video_url: statusData.video_url });
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'succeeded', video_url: statusData.video_url } : v);
+                                saveVideos(updated);
                                 incrementUsage('videos');
                             } else if (s === 'failed') {
                                 setVideoStatus('failed');
@@ -1381,7 +1346,8 @@
                     const data = await res.json();
                     const taskId = data.task_id;
 
-                    await saveVideoToApi({ id: taskId, url: null, formato: '360', titulo: '360 Dinâmico', thumbnail, task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, type: '360' });
+                    const existing = loadVideos();
+                    saveVideos([{ task_id: taskId, created_at: new Date().toISOString(), status: 'generating', video_url: null, thumbnail, type: '360' }, ...existing]);
 
                     const poll = async () => {
                         try {
@@ -1392,7 +1358,8 @@
                                 setVideoStatus('succeeded');
                                 setVideoUrl(statusData.video_url);
                                 clearInterval(videoPollingRef.current);
-                                await saveVideoToApi({ id: taskId, url: statusData.video_url, formato: 'social', titulo: 'Redes Sociais', thumbnail, task_id: taskId, created_at: new Date().toISOString(), status: 'succeeded', video_url: statusData.video_url });
+                                const updated = loadVideos().map(v => v.task_id === taskId ? { ...v, status: 'succeeded', video_url: statusData.video_url } : v);
+                                saveVideos(updated);
                                 incrementUsage('videos');
                             } else if (s === 'failed') {
                                 setVideoStatus('failed');
@@ -2483,42 +2450,11 @@
 
         // --- Meus Vídeos Screen ---
 
-        const MV_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec';
-
-        const GALERIA_CACHE_KEY = 'wm_galeria_cache';
-        const GALERIA_PHOTOS_CACHE_KEY = 'wm_galeria_photos_cache';
-        const loadCache = () => { try { return JSON.parse(localStorage.getItem(GALERIA_CACHE_KEY) || '[]'); } catch(e) { return []; } };
-        const saveCache = (list) => { try { localStorage.setItem(GALERIA_CACHE_KEY, JSON.stringify(list)); } catch(e) {} };
-
-        const loadPhotosCache = () => { try { return JSON.parse(localStorage.getItem(GALERIA_PHOTOS_CACHE_KEY) || '[]'); } catch(e) { return []; } };
-
         const MeusVideosScreen = () => {
             const navigate = useNavigate();
-            const cached = loadCache();
-            const cachedPhotos = loadPhotosCache();
-            const [videos, setVideos] = React.useState(cached);
-            const [photos, setPhotosGaleria] = React.useState(cachedPhotos);
-            const [loadingVideos, setLoadingVideos] = React.useState(cached.length === 0);
+            const [videos, setVideos] = React.useState(() => { try { return JSON.parse(localStorage.getItem('wm_studio_videos') || '[]'); } catch(e) { return []; } });
+            const [photos, setPhotosGaleria] = React.useState(() => { try { return JSON.parse(localStorage.getItem('wm_studio_photos') || '[]'); } catch(e) { return []; } });
             const [activeTab, setActiveTab] = React.useState('videos');
-
-            React.useEffect(() => {
-                const fetchAll = async () => {
-                    try {
-                        const res = await fetch(MV_APPS_SCRIPT_URL + '?action=getMedia');
-                        const data = await res.json();
-                        if (data.success) {
-                            const allVideos = data.data.filter(i => i.mediaType === 'video' || !i.mediaType);
-                            const allPhotos = data.data.filter(i => i.mediaType === 'image');
-                            setVideos(allVideos);
-                            saveCache(allVideos);
-                            setPhotosGaleria(allPhotos);
-                            localStorage.setItem(GALERIA_PHOTOS_CACHE_KEY, JSON.stringify(allPhotos));
-                        }
-                    } catch(e) { console.error('fetchAll error:', e); }
-                    finally { setLoadingVideos(false); }
-                };
-                fetchAll();
-            }, []);
             const [showMVFeedback, setShowMVFeedback] = React.useState(false);
             const pollingRefs = React.useRef({});
 
@@ -2528,7 +2464,11 @@
             };
 
             const updateVideo = (taskId, patch) => {
-                setVideos(prev => prev.map(v => v.task_id === taskId ? { ...v, ...patch } : v));
+                setVideos(prev => {
+                    const updated = prev.map(v => v.task_id === taskId ? { ...v, ...patch } : v);
+                    try { localStorage.setItem('wm_studio_videos', JSON.stringify(updated)); } catch(e) {}
+                    return updated;
+                });
             };
 
             const startPolling = (taskId) => {
@@ -2539,14 +2479,6 @@
                         const data = await res.json();
                         if (data.status === 'succeeded' && data.video_url) {
                             updateVideo(taskId, { status: 'succeeded', video_url: data.video_url });
-                            // Atualiza entrada no Drive com URL final
-                            try {
-                                await fetch(MV_APPS_SCRIPT_URL, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ tipo: 'saveMedia', mediaType: 'video', id: taskId, url: data.video_url, task_id: taskId, status: 'succeeded', video_url: data.video_url, criadoEm: new Date().toISOString() })
-                                });
-                            } catch(e) {}
                             incrementUsage('videos');
                             clearInterval(pollingRefs.current[taskId]);
                             delete pollingRefs.current[taskId];
@@ -2572,7 +2504,11 @@
 
             const deleteVideo = (taskId) => {
                 if (pollingRefs.current[taskId]) { clearInterval(pollingRefs.current[taskId]); delete pollingRefs.current[taskId]; }
-                setVideos(prev => prev.filter(v => v.task_id !== taskId));
+                setVideos(prev => {
+                    const updated = prev.filter(v => v.task_id !== taskId);
+                    try { localStorage.setItem('wm_studio_videos', JSON.stringify(updated)); } catch(e) {}
+                    return updated;
+                });
             };
 
             return (
@@ -2612,7 +2548,7 @@
                         </div>
 
                         {/* Loading state */}
-                        {loadingVideos && activeTab === 'videos' && (
+                        {false && (
                             <div className="flex flex-col items-center justify-center py-24 gap-4">
                                 <svg className="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style={{color:'var(--ds-brand-complementary)'}}>
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -2625,7 +2561,7 @@
                         {/* ABA VÍDEOS */}
                         {activeTab === 'videos' && (
                             <React.Fragment>
-                                {!loadingVideos && videos.length === 0 && (
+                                {videos.length === 0 && (
                                     <div className="flex flex-col items-center justify-center py-24 text-center">
                                         <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
                                             style={{background:'rgba(91,88,143,0.1)'}}>
