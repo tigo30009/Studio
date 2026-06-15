@@ -435,7 +435,7 @@
             const [showFeedback, setShowFeedback] = React.useState(false);
             const pendingVideos = React.useMemo(() => {
                 try {
-                    const cached = JSON.parse(localStorage.getItem( + CACHE_KEY + ) || '[]');
+                    const cached = JSON.parse(localStorage.getItem('wm_galeria_cache') || '[]');
                     return cached.filter(v => v.status === 'generating').length;
                 } catch(e) { return 0; }
             }, [location.pathname]);
@@ -1058,6 +1058,7 @@
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
                         incrementUsage('fotos');
                         setSliderPos(50);
+                        savePhotoToApi({ id: Date.now().toString(), url: imageUrl, formato: template.name, titulo: template.name, criadoEm: new Date().toISOString() });
 
                     } else if (template.isBytedance) {
                         // --- Bytedance Seedream flow ---
@@ -1071,6 +1072,7 @@
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
                         incrementUsage('fotos');
                         setSliderPos(50);
+                        savePhotoToApi({ id: Date.now().toString(), url: imageUrl, formato: 'Bytedance', titulo: 'Bytedance', criadoEm: new Date().toISOString() });
 
                     } else {
                         // --- Remove.bg flow (original) ---
@@ -1104,6 +1106,7 @@
                         setProcessedImgs(prev => ({ ...prev, [activePhoto]: finalUrl }));
                         incrementUsage('fotos');
                         setSliderPos(50);
+                        savePhotoToApi({ id: Date.now().toString(), url: finalUrl, formato: template.name || 'Remove.bg', titulo: template.name || 'Remove.bg', criadoEm: new Date().toISOString() });
                     }
                 } catch (err) {
                     setError(err.message);
@@ -1143,6 +1146,7 @@
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
                             setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
                             incrementUsage('fotos');
+                            savePhotoToApi({ id: Date.now().toString() + idx, url: imageUrl, formato: template.name, titulo: template.name, criadoEm: new Date().toISOString() });
                         } else if (template.isBytedance) {
                             const uploadForm = new FormData();
                             uploadForm.append('image', blob, photo.name || 'photo.jpg');
@@ -1153,6 +1157,7 @@
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
                             setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
                             incrementUsage('fotos');
+                            savePhotoToApi({ id: Date.now().toString() + idx, url: imageUrl, formato: 'Bytedance', titulo: 'Bytedance', criadoEm: new Date().toISOString() });
                         } else {
                             const formData = new FormData();
                             formData.append('image', blob, photo.name || 'photo.jpg');
@@ -1164,6 +1169,7 @@
                             if (template.studioImg) { finalUrl = await composeWithBackground(carPngUrl, template.studioImg); }
                             setProcessedImgs(prev => ({ ...prev, [idx]: finalUrl }));
                             incrementUsage('fotos');
+                            savePhotoToApi({ id: Date.now().toString() + idx, url: finalUrl, formato: template.name || 'Remove.bg', titulo: template.name || 'Remove.bg', criadoEm: new Date().toISOString() });
                         }
                     } catch (err) {
                         setError('Foto ' + (idx+1) + ': ' + err.message);
@@ -1187,17 +1193,35 @@
                 } catch(e) { console.error('loadVideos error:', e); return []; }
             };
 
+            const savePhotoToApi = async (photoObj) => {
+                // Salva no cache local imediatamente
+                try {
+                    const cached = JSON.parse(localStorage.getItem('wm_galeria_photos_cache') || '[]');
+                    cached.unshift(photoObj);
+                    if (cached.length > 200) cached.splice(200);
+                    localStorage.setItem('wm_galeria_photos_cache', JSON.stringify(cached));
+                } catch(e) {}
+                // Salva na API em background
+                try {
+                    await fetch('https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...photoObj, tipo: 'saveMedia', mediaType: 'image' })
+                    });
+                } catch(e) { console.error('savePhoto error:', e); }
+            };
+
             const saveVideoToApi = async (videoObj) => {
                 // Salva no cache local imediatamente
                 try {
-                    const cached = JSON.parse(localStorage.getItem( + CACHE_KEY + ) || '[]');
+                    const cached = JSON.parse(localStorage.getItem('wm_galeria_cache') || '[]');
                     const exists = cached.findIndex(v => v.task_id === videoObj.task_id);
                     if (exists >= 0) {
                         cached[exists] = { ...cached[exists], ...videoObj };
                     } else {
                         cached.unshift(videoObj);
                     }
-                    localStorage.setItem( + CACHE_KEY + , JSON.stringify(cached));
+                    localStorage.setItem('wm_galeria_cache', JSON.stringify(cached));
                 } catch(e) {}
                 // Salva na API em background
                 try {
@@ -2461,29 +2485,39 @@
 
         const MV_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw4LBMqb4XSmb5kwihdGRqwsSxnlOhwGLB4TZe6LBTd9KERyUG-otqTJMomk6QgjxKQ/exec';
 
-        const GALERIA_CACHE_KEY =  + CACHE_KEY + ;
+        const GALERIA_CACHE_KEY = 'wm_galeria_cache';
+        const GALERIA_PHOTOS_CACHE_KEY = 'wm_galeria_photos_cache';
         const loadCache = () => { try { return JSON.parse(localStorage.getItem(GALERIA_CACHE_KEY) || '[]'); } catch(e) { return []; } };
         const saveCache = (list) => { try { localStorage.setItem(GALERIA_CACHE_KEY, JSON.stringify(list)); } catch(e) {} };
+
+        const loadPhotosCache = () => { try { return JSON.parse(localStorage.getItem(GALERIA_PHOTOS_CACHE_KEY) || '[]'); } catch(e) { return []; } };
 
         const MeusVideosScreen = () => {
             const navigate = useNavigate();
             const cached = loadCache();
+            const cachedPhotos = loadPhotosCache();
             const [videos, setVideos] = React.useState(cached);
+            const [photos, setPhotosGaleria] = React.useState(cachedPhotos);
             const [loadingVideos, setLoadingVideos] = React.useState(cached.length === 0);
+            const [activeTab, setActiveTab] = React.useState('videos');
 
             React.useEffect(() => {
-                const fetchVideos = async () => {
+                const fetchAll = async () => {
                     try {
                         const res = await fetch(MV_APPS_SCRIPT_URL + '?action=getMedia');
                         const data = await res.json();
                         if (data.success) {
-                            setVideos(data.data);
-                            saveCache(data.data);
+                            const allVideos = data.data.filter(i => i.mediaType === 'video' || !i.mediaType);
+                            const allPhotos = data.data.filter(i => i.mediaType === 'image');
+                            setVideos(allVideos);
+                            saveCache(allVideos);
+                            setPhotosGaleria(allPhotos);
+                            localStorage.setItem(GALERIA_PHOTOS_CACHE_KEY, JSON.stringify(allPhotos));
                         }
-                    } catch(e) { console.error('fetchVideos error:', e); }
+                    } catch(e) { console.error('fetchAll error:', e); }
                     finally { setLoadingVideos(false); }
                 };
-                fetchVideos();
+                fetchAll();
             }, []);
             const [showMVFeedback, setShowMVFeedback] = React.useState(false);
             const pollingRefs = React.useRef({});
@@ -2548,7 +2582,7 @@
                     <main className="px-4 md:px-8 lg:px-[72px] py-8 max-w-[1440px] mx-auto w-full">
 
                         {/* Header */}
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center justify-between mb-6">
                             <div>
                                 <button onClick={() => navigate('/studio')}
                                     className="flex items-center gap-1 mb-3 text-[12px] font-semibold uppercase tracking-wider transition-all hover:opacity-70"
@@ -2557,17 +2591,28 @@
                                     Voltar ao Estúdio
                                 </button>
                                 <h1 className="text-[24px] font-bold leading-[120%]" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Galeria</h1>
-                                <p className="text-[14px] leading-[140%] mt-1" style={{color:'var(--ds-text-secondary)'}}>Todos os vídeos gerados, visíveis em qualquer dispositivo.</p>
-                            </div>
-                            <div className="flex items-center gap-2 px-4 py-2 rounded-[8px] text-[12px] font-semibold"
-                                style={{background:'var(--ds-bg-card)', border:'1px solid var(--ds-border-default)', color:'var(--ds-text-secondary)'}}>
-                                <span className="material-symbols-outlined text-[16px]" style={{color:'var(--ds-brand-complementary)', fontVariationSettings:"'FILL' 1"}}>video_library</span>
-                                {videos.length} vídeo{videos.length !== 1 ? 's' : ''}
+                                <p className="text-[14px] leading-[140%] mt-1" style={{color:'var(--ds-text-secondary)'}}>Todos os conteúdos gerados, visíveis em qualquer dispositivo.</p>
                             </div>
                         </div>
 
+                        {/* Abas */}
+                        <div className="flex gap-1 mb-6 p-1 rounded-[10px] w-fit" style={{background:'var(--ds-bg-section)'}}>
+                            <button onClick={() => setActiveTab('videos')}
+                                className="px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all flex items-center gap-2"
+                                style={activeTab === 'videos' ? {background:'var(--ds-bg-card)', color:'var(--ds-text-primary)', boxShadow:'0 1px 4px rgba(0,0,0,0.08)'} : {color:'var(--ds-text-secondary)'}}>
+                                <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>movie</span>
+                                Vídeos {videos.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px]" style={{background:'var(--ds-brand-complementary)', color:'white'}}>{videos.length}</span>}
+                            </button>
+                            <button onClick={() => setActiveTab('fotos')}
+                                className="px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all flex items-center gap-2"
+                                style={activeTab === 'fotos' ? {background:'var(--ds-bg-card)', color:'var(--ds-text-primary)', boxShadow:'0 1px 4px rgba(0,0,0,0.08)'} : {color:'var(--ds-text-secondary)'}}>
+                                <span className="material-symbols-outlined text-[16px]" style={{fontVariationSettings:"'FILL' 1"}}>photo_library</span>
+                                Fotos {photos.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px]" style={{background:'var(--ds-brand-primary)', color:'white'}}>{photos.length}</span>}
+                            </button>
+                        </div>
+
                         {/* Loading state */}
-                        {loadingVideos && (
+                        {loadingVideos && activeTab === 'videos' && (
                             <div className="flex flex-col items-center justify-center py-24 gap-4">
                                 <svg className="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style={{color:'var(--ds-brand-complementary)'}}>
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -2577,29 +2622,29 @@
                             </div>
                         )}
 
-                        {/* Empty state DS */}
-                        {!loadingVideos && videos.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-24 text-center">
-                                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
-                                    style={{background:'rgba(91,88,143,0.1)'}}>
-                                    <span className="material-symbols-outlined text-4xl" style={{color:'var(--ds-brand-complementary)'}}>movie</span>
-                                </div>
-                                <h2 className="text-[20px] font-bold leading-[130%] mb-2" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Nenhum vídeo ainda</h2>
-                                <p className="text-[14px] leading-[140%] max-w-xs mb-6" style={{color:'var(--ds-text-secondary)'}}>
-                                    Selecione o fundo "Redes Sociais" no Estúdio e gere seu primeiro vídeo para TikTok e Reels.
-                                </p>
-                                <button onClick={() => navigate('/studio')}
-                                    className="h-12 px-6 text-white text-[14px] font-semibold rounded-[8px] flex items-center gap-2 transition-all hover:opacity-90"
-                                    style={{background:'linear-gradient(135deg, var(--ds-brand-complementary) 0%, #41408F 100%)', boxShadow:'0 8px 16px rgba(91,88,143,0.24)'}}>
-                                    <span className="material-symbols-outlined text-[18px]">add</span>
-                                    Gerar primeiro vídeo
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Video grid DS — 4 colunas */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {videos.map((v) => (
+                        {/* ABA VÍDEOS */}
+                        {activeTab === 'videos' && (
+                            <React.Fragment>
+                                {!loadingVideos && videos.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                                        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+                                            style={{background:'rgba(91,88,143,0.1)'}}>
+                                            <span className="material-symbols-outlined text-4xl" style={{color:'var(--ds-brand-complementary)'}}>movie</span>
+                                        </div>
+                                        <h2 className="text-[20px] font-bold leading-[130%] mb-2" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Nenhum vídeo ainda</h2>
+                                        <p className="text-[14px] leading-[140%] max-w-xs mb-6" style={{color:'var(--ds-text-secondary)'}}>
+                                            Selecione Redes Sociais, Marketplace ou 360 no Estúdio e gere seu primeiro vídeo.
+                                        </p>
+                                        <button onClick={() => navigate('/studio')}
+                                            className="h-12 px-6 text-white text-[14px] font-semibold rounded-[8px] flex items-center gap-2 transition-all hover:opacity-90"
+                                            style={{background:'linear-gradient(135deg, var(--ds-brand-complementary) 0%, #41408F 100%)', boxShadow:'0 8px 16px rgba(91,88,143,0.24)'}}>
+                                            <span className="material-symbols-outlined text-[18px]">add</span>
+                                            Gerar primeiro vídeo
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {videos.map((v) => (
                                 <div key={v.task_id} className="flex flex-col overflow-hidden"
                                     style={{background:'var(--ds-bg-card)', borderRadius:'16px', border:'1px solid var(--ds-border-default)', boxShadow:'var(--shadow-ds-level-1)'}}>
 
@@ -2684,7 +2729,68 @@
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                                </div>
+                            </React.Fragment>
+                        )}
+
+                        {/* ABA FOTOS */}
+                        {activeTab === 'fotos' && (
+                            <React.Fragment>
+                                {photos.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                                        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+                                            style={{background:'rgba(226,36,70,0.1)'}}>
+                                            <span className="material-symbols-outlined text-4xl" style={{color:'var(--ds-brand-primary)'}}>photo_library</span>
+                                        </div>
+                                        <h2 className="text-[20px] font-bold leading-[130%] mb-2" style={{color:'var(--ds-neutral-low-darker, #2F2F32)'}}>Nenhuma foto ainda</h2>
+                                        <p className="text-[14px] leading-[140%] max-w-xs mb-6" style={{color:'var(--ds-text-secondary)'}}>
+                                            Processe fotos no Estúdio e elas aparecerão aqui automaticamente.
+                                        </p>
+                                        <button onClick={() => navigate('/studio')}
+                                            className="h-12 px-6 text-white text-[14px] font-semibold rounded-[8px] flex items-center gap-2 transition-all hover:opacity-90"
+                                            style={{background:'linear-gradient(135deg, var(--ds-brand-primary) 0%, #b01c32 100%)'}}>
+                                            <span className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
+                                            Processar primeira foto
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {photos.map((p, idx) => (
+                                        <div key={p.id || idx} className="flex flex-col overflow-hidden"
+                                            style={{background:'var(--ds-bg-card)', borderRadius:'16px', border:'1px solid var(--ds-border-default)', boxShadow:'var(--shadow-ds-level-1)'}}>
+                                            <div className="relative w-full overflow-hidden" style={{aspectRatio:'4/3', background:'#000', borderRadius:'12px 12px 0 0'}}>
+                                                {p.url ? (
+                                                    <img src={p.url} className="w-full h-full object-cover" alt="foto processada"
+                                                        style={{borderRadius:'12px 12px 0 0'}} />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center" style={{background:'var(--ds-bg-section)'}}>
+                                                        <span className="material-symbols-outlined text-4xl" style={{color:'var(--ds-neutral-high-medium)'}}> image</span>
+                                                    </div>
+                                                )}
+                                                <div className="absolute top-2 left-2">
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full"
+                                                        style={{background:'rgba(0,0,0,0.6)', color:'white'}}>
+                                                        {p.formato || p.titulo || 'Estúdio'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 flex flex-col gap-2">
+                                                <p className="text-[11px] leading-[140%]" style={{color:'var(--ds-text-secondary)'}}>{p.criadoEm ? new Date(p.criadoEm).toLocaleDateString('pt-BR') : ''}</p>
+                                                {p.url && (
+                                                    <a href={'https://studio-xefd.onrender.com/download-proxy?url=' + encodeURIComponent(p.url)}
+                                                        download="foto_processada.png"
+                                                        className="w-full h-9 flex items-center justify-center gap-1.5 text-white text-[12px] font-semibold rounded-[8px] transition-all hover:opacity-90"
+                                                        style={{background:'linear-gradient(135deg, var(--ds-brand-primary) 0%, #b01c32 100%)'}}>
+                                                        <span className="material-symbols-outlined text-[15px]">download</span>
+                                                        Baixar foto
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </React.Fragment>
+                        )}
                     </main>
                 </div>
             );
