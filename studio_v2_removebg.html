@@ -872,7 +872,7 @@
         const StudioScreen = () => {
             const navigate = useNavigate();
             const [sliderPos, setSliderPos] = React.useState(50);
-            const [selectedTemplate, setSelectedTemplate] = React.useState(0);
+            const [selectedTemplate, setSelectedTemplate] = React.useState(1);
             const [activePhoto, setActivePhoto] = React.useState(0);
             const [processing, setProcessing] = React.useState(false);
             const [processingAll, setProcessingAll] = React.useState(false);
@@ -894,9 +894,9 @@
             const STUDIO_TEMPLATE = "/estudio_infinity_white.jpg";
 
             const photoTemplates = [
-                { id: 0, name: "Estúdio Branco", uses: "3.2k USOS", bg: "#f0f0f0", studioImg: null, isEstudioBranco: true, img: "https://raw.githubusercontent.com/tigo30009/Studio/main/Fundo_estudio_1.jpeg" },
-                { id: 1, name: "Bytedance", uses: "1.8k USOS", bg: "#8a8a8a", studioImg: null, isBytedance: true, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDPqX9l8rCgEaJNsDcIVqX7j8vU_nUeqC0g08g69aE4J317qWGWnVyj0MjR9-zGzT8OvfsvTttGK_A4_rc3biQiQPIwjXpZPw9dNNlZZZJC9ykD7CJ6PSTI_-A-x6gfWo2Wa1J2bJ3WT6OI2RkirG_ToGvLn8nTAHliKEc6oeqGYqr5WDQPl8yS0plz7-wdWXWPUNOKBsArcUifeXK3dX_AtFTA83rqq4ibGC1rmZpcLGs550xMxmsDzGuMPpC0eEPh029_XV6lbJg" },
-                { id: 2, name: "Midnight Onyx", uses: "942 USOS", bg: "#1a1a2e", studioImg: null, img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGdi8qIED4qmgJH0rcg_FQaJ4xwMiCRh9gABhxqZECFtn_7Rw3Ic9IskgPTlzcv0vBBD9LtbqqQAvDqsUNbZ7mcoy9m3Mr-YLY10312_UTXNq0F1WFjL72d6Z8sXmHp-WN3N9a7rbRzCgINx63QOiOYZcCFV9A5btemaMbA7b7jEzSe6S5kEnCWOa64Zg7N31A1r8WA-8QTPDf4Ygpc6otUDrTAN7dmkk0_dSLp2GUvSI08etrAJp1mH7GOe1sJyfC7pznyVDCcyI", comingSoon: true },
+                { id: 1, name: "Estúdio Branco", uses: "", bg: "#f5f5f5", studioImg: null, isEstudioBg: true, fundoUrl: "https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_fotografia_branco.jpeg", img: "https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_fotografia_branco.jpeg" },
+                { id: 2, name: "Estúdio Cinza", uses: "", bg: "#9a9a9a", studioImg: null, isEstudioBg: true, fundoUrl: "https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_fotografia_cinza.jpeg", img: "https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_fotografia_cinza.jpeg" },
+                { id: 3, name: "Estúdio Amplo", uses: "", bg: "#e8e8e8", studioImg: null, isEstudioBg: true, fundoUrl: "https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_branco.jpeg", img: "https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_branco.jpeg" },
             ];
             const videoTemplates = [
                 { id: 4, name: "Redes Sociais", uses: "NOVO", desc: "9:16 · TikTok, Reels, Stories", bg: "#0f0f1a", img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80", isSocialVideo: true },
@@ -1044,25 +1044,13 @@
                         return new Blob([ab], { type: mimeType });
                     };
 
-                    if (template.isEstudioBranco) {
-                        // --- Estúdio Branco (Bytedance com fundo referenciado) ---
+                    if (template.isEstudioBg) {
+                        // --- Estúdio Bg flow (Bytedance com fundo dinâmico) ---
                         const uploadForm = new FormData();
                         uploadForm.append('image', toBlob(currentPhoto), currentPhoto.name || 'photo.jpg');
+                        uploadForm.append('fundoUrl', template.fundoUrl);
                         const res = await fetch('https://studio-xefd.onrender.com/estudio-branco-bg', { method: 'POST', body: uploadForm });
-                        if (!res.ok) { var e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro Estúdio Branco (status ' + res.status + ')'); }
-                        const data = await res.json();
-                        const imageUrl = data.data && data.data[0] && data.data[0].url;
-                        if (!imageUrl) throw new Error('Bytedance não retornou imagem.');
-                        setProcessedImgs(prev => ({ ...prev, [activePhoto]: imageUrl }));
-                        incrementUsage('fotos');
-                        setSliderPos(50);
-
-                    } else if (template.isBytedance) {
-                        // --- Bytedance Seedream flow ---
-                        const uploadForm = new FormData();
-                        uploadForm.append('image', toBlob(currentPhoto), currentPhoto.name || 'photo.jpg');
-                        const res = await fetch('https://studio-xefd.onrender.com/bytedance-bg', { method: 'POST', body: uploadForm });
-                        if (!res.ok) { var errData = await res.json().catch(() => ({})); throw new Error(errData.error || 'Erro ao processar imagem Bytedance (status ' + res.status + ')'); }
+                        if (!res.ok) { var errData = await res.json().catch(() => ({})); throw new Error(errData.error || 'Erro ao processar imagem (status ' + res.status + ')'); }
                         const data = await res.json();
                         const imageUrl = data.data && data.data[0] && data.data[0].url;
                         if (!imageUrl) throw new Error('Bytedance não retornou imagem.');
@@ -1130,21 +1118,12 @@
                         for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
                         const blob = new Blob([ab], { type: mimeType });
 
-                        if (template.isEstudioBranco) {
+                        if (template.isEstudioBg) {
                             const uploadForm = new FormData();
                             uploadForm.append('image', blob, photo.name || 'photo.jpg');
+                            uploadForm.append('fundoUrl', template.fundoUrl);
                             const res = await fetch('https://studio-xefd.onrender.com/estudio-branco-bg', { method: 'POST', body: uploadForm });
-                            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro Estúdio Branco foto ' + (idx+1)); }
-                            const data = await res.json();
-                            const imageUrl = data.data && data.data[0] && data.data[0].url;
-                            if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));
-                            setProcessedImgs(prev => ({ ...prev, [idx]: imageUrl }));
-                            incrementUsage('fotos');
-                        } else if (template.isBytedance) {
-                            const uploadForm = new FormData();
-                            uploadForm.append('image', blob, photo.name || 'photo.jpg');
-                            const res = await fetch('https://studio-xefd.onrender.com/bytedance-bg', { method: 'POST', body: uploadForm });
-                            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro Bytedance foto ' + (idx+1)); }
+                            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Erro ao processar foto ' + (idx+1)); }
                             const data = await res.json();
                             const imageUrl = data.data && data.data[0] && data.data[0].url;
                             if (!imageUrl) throw new Error('Bytedance não retornou imagem para foto ' + (idx+1));

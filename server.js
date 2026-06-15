@@ -113,7 +113,7 @@ app.post('/estudio-branco-bg', upload.single('image'), async (req, res) => {
     const base64 = req.file.buffer.toString('base64');
     const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
 
-    const FUNDO_URL = 'https://raw.githubusercontent.com/tigo30009/Studio/main/Fundo_estudio_1.jpeg';
+    const FUNDO_URL = req.body.fundoUrl || 'https://raw.githubusercontent.com/tigo30009/Studio/main/Estudio_fotografia_branco.jpeg';
 
     const payload = {
       model: 'seedream-5-0-260128',
